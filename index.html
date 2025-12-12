@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NeuroSync | Consistent Stream</title>
+    <title>NeuroSync | Refined Logic</title>
     <style>
         :root {
-            --bg-color: #0f0f12;
-            --text-main: #e0e0e0; /* The standard "Reading" gray/white */
-            --text-muted: #4a4a55; /* The "Ghost" words on the side */
+            --bg-color: #111;
+            --text-main: #f4f4f4;
+            --text-muted: #555;
             --accent-color: #00ffcc;
-            --pivot-color: #ff3333; /* The Focus Red */
-            --ui-bg: #1a1a20;
-            --border: #2a2a35;
-            --font-stack: 'Inter', system-ui, -apple-system, sans-serif;
+            --pivot-color: #ff3333; /* The red highlight */
+            --ui-bg: #1e1e24;
+            --border: #333;
+            --font-stack: 'Inter', system-ui, sans-serif;
             --font-read: 'Courier New', Courier, monospace; 
         }
 
@@ -45,18 +45,18 @@
 
         .config-card {
             width: 90%;
-            max-width: 600px;
+            max-width: 650px;
             background: var(--ui-bg);
             border: 1px solid var(--border);
             border-radius: 12px;
             padding: 30px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.7);
         }
 
         h1 {
-            font-weight: 200;
+            font-weight: 300;
             text-align: center;
-            letter-spacing: 4px;
+            letter-spacing: 5px;
             margin-bottom: 25px;
             color: var(--accent-color);
             text-transform: uppercase;
@@ -81,7 +81,7 @@
             background: #0a0a0c;
             border: 1px solid var(--border);
             color: white;
-            padding: 8px;
+            padding: 10px;
             border-radius: 4px;
             outline: none;
         }
@@ -92,9 +92,9 @@
             background: #0a0a0c;
             border: 1px solid var(--border);
             color: #ddd;
-            padding: 15px;
+            padding: 20px;
             font-size: 16px;
-            line-height: 1.5;
+            line-height: 1.6;
             border-radius: 8px;
             resize: none;
             outline: none;
@@ -111,14 +111,13 @@
             color: #000;
             border: none;
             border-radius: 6px;
-            font-weight: 700;
+            font-weight: 800;
             letter-spacing: 1px;
             cursor: pointer;
             text-transform: uppercase;
-            transition: transform 0.1s, filter 0.2s;
+            transition: 0.2s;
         }
-        button.action-btn:hover { filter: brightness(1.1); }
-        button.action-btn:active { transform: scale(0.98); }
+        button.action-btn:hover { background: #fff; }
 
         /* --- Reader View --- */
         #reader-layer {
@@ -139,18 +138,22 @@
             pointer-events: all;
         }
 
+        /* 
+           GRID SYSTEM FOR PERFECT CENTERING
+           The center column fits the content (auto), while left/right take 1fr.
+           This physically locks the center column to the middle of the screen.
+        */
         .rsvp-grid {
             display: grid;
             grid-template-columns: 1fr auto 1fr; 
             align-items: baseline;
             width: 100%;
-            max-width: 1400px; 
             user-select: none;
         }
 
         .word-part {
             font-family: var(--font-read);
-            font-size: 4.5rem; 
+            font-size: 5rem; 
             white-space: pre; 
             line-height: 1;
         }
@@ -160,53 +163,36 @@
             color: var(--text-muted);
             justify-self: end;
             overflow: hidden; 
-            max-width: 45vw;
+            max-width: 42vw;
         }
 
         .part-pivot {
-            font-weight: 900;
+            color: var(--pivot-color);
+            font-weight: 700;
             text-align: center;
             min-width: 1ch; 
-            transform: scale(1.1);
             position: relative;
             z-index: 2;
         }
 
-        /* 
-           THE RETICLE (Vertical Bars)
-           Applied to ALL pivot parts (Numbers AND Words)
-        */
-        .part-pivot::before, 
-        .part-pivot::after {
+        /* Reticle Bars */
+        .part-pivot:not(.is-number)::before, 
+        .part-pivot:not(.is-number)::after {
             content: '';
             position: absolute;
             left: 50%;
             transform: translateX(-50%);
             width: 2px;
-            height: 15px;
-            background: #333; /* Dark gray reticle */
+            height: 20px;
+            background: #333;
         }
-        .part-pivot::before { top: -25px; }
-        .part-pivot::after { bottom: -25px; }
+        .part-pivot:not(.is-number)::before { top: -30px; }
+        .part-pivot:not(.is-number)::after { bottom: -30px; }
 
-        /* 
-           DEFAULT STATE (Letters) 
-           High contrast Red
-        */
-        .part-pivot {
-            color: var(--pivot-color);
-        }
-
-        /* 
-           NUMBER STATE 
-           - Reverts color to standard gray/white (consistency)
-           - Normalizes font weight
-           - Reticle remains because of the rule above
-        */
+        /* Number Styling: White, No Bold, No Reticle */
         .part-pivot.is-number {
-            color: var(--text-main); 
-            font-weight: 400; 
-            transform: scale(1.0); 
+            color: #fff;
+            font-weight: 400;
         }
 
         .part-right {
@@ -214,24 +200,24 @@
             color: var(--text-muted);
             justify-self: start;
             overflow: hidden;
-            max-width: 45vw;
+            max-width: 42vw;
         }
 
         .reader-controls {
             position: absolute;
-            bottom: 100px;
-            display: flex;
-            gap: 20px;
+            bottom: 80px;
         }
 
         button.secondary-btn {
             background: transparent;
             border: 1px solid #444;
-            color: #888;
-            padding: 10px 30px;
+            color: #666;
+            padding: 12px 40px;
             border-radius: 30px;
             cursor: pointer;
             text-transform: uppercase;
+            font-weight: 600;
+            transition: 0.2s;
         }
         button.secondary-btn:hover { border-color: var(--pivot-color); color: var(--pivot-color); }
 
@@ -239,26 +225,26 @@
 </head>
 <body>
 
-    <!-- INPUT LAYER -->
+    <!-- INPUT -->
     <div id="input-layer">
         <div class="config-card">
-            <h1>NeuroSync <span style="font-size:0.4em; opacity:0.5; vertical-align: super;">v4</span></h1>
+            <h1>NeuroSync <span style="font-size:0.4em; opacity:0.5; vertical-align: top;">V3</span></h1>
             
             <div class="controls-row">
                 <div class="control-group">
-                    <label>Voice Engine</label>
+                    <label>Voice Model</label>
                     <select id="voice-select"><option>Loading...</option></select>
                 </div>
                 <div class="control-group">
-                    <label>Speed (WPM Approx)</label>
+                    <label>WPM Multiplier</label>
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <input type="range" id="rate-range" min="0.5" max="2.0" step="0.1" value="0.8">
-                        <span id="speed-display" style="font-size:0.8rem; width:30px;">0.8</span>
+                        <input type="range" id="rate-range" min="0.5" max="2.0" step="0.1" value="0.9">
+                        <span id="speed-display" style="font-size:0.8rem; width:30px;">0.9</span>
                     </div>
                 </div>
             </div>
 
-            <textarea id="text-input" maxlength="4000" placeholder="Paste text here. Punctuation will be removed..."></textarea>
+            <textarea id="text-input" maxlength="4000" placeholder="Enter text. Punctuation will be stripped. Numbers remain intact."></textarea>
             <div style="text-align:right; font-size:0.7rem; color:#555; margin-top:5px;">
                 <span id="char-count">0</span>/4000
             </div>
@@ -267,7 +253,7 @@
         </div>
     </div>
 
-    <!-- READER LAYER -->
+    <!-- READER -->
     <div id="reader-layer">
         <div class="rsvp-grid">
             <div class="word-part part-left" id="rsvp-left"></div>
@@ -283,11 +269,12 @@
     <script>
         /**
          * NEUROSYNC ENGINE
-         * Logic: Punctuation Clean + Numeric Padding + Reticle Consistency
+         * Component: Robust Text Cleaner & Advanced Spiral-ORP Algorithm
          */
 
         const CONFIG = {
-            vowels: /[aeiouy]/i
+            vowels: /[aeiouy]/i,
+            maxChars: 4000
         };
 
         const STATE = {
@@ -354,57 +341,92 @@
             });
         }
 
-        // --- Text Processing ---
+        // --- Text Pre-Processing ---
         function cleanInputText(raw) {
             let t = raw;
+            // Normalize spaces/newlines
             t = t.replace(/[\r\n]+/g, ' ');
-            // Pad numbers so they stand alone: "X12" -> "X 12"
+            // Space out numbers to treat them as words
             t = t.replace(/(\d+)/g, ' $1 ');
-            // Remove punctuation
+            // Strip bad characters (keep letters, numbers, spaces)
             t = t.replace(/[^\w\s]|_/g, ""); 
+            // Fix double spaces
             t = t.replace(/\s+/g, ' ');
             return t.trim();
         }
 
-        // --- Alignment Algorithm ---
+        // --- Refined Spiral Algorithm ---
         function getOptimalPivot(word) {
             const len = word.length;
+            
+            // Fallback: Geometric Center
+            // Logic: "Center or first left of center if even".
+            // Even (4): ceil(2)-1 = 1. Odd (5): ceil(2.5)-1 = 2.
+            const fallbackIndex = Math.ceil(len / 2) - 1;
+
             if (len <= 1) return 0;
 
+            // Start spiral from geometric center
             const center = Math.floor(len / 2);
-            const maxDist = Math.min(4, center);
+            
+            // Loop Distance from 0 to bounds
+            for (let d = 0; d < len; d++) {
+                
+                // 1. Check LEFT side first (Bias requirement)
+                let lIdx = center - d;
+                if (lIdx >= 0) {
+                    if (CONFIG.vowels.test(word[lIdx])) {
+                        // Check Edge Rule:
+                        // If word > 3 chars, reject if index is 0 or len-1
+                        const isEdge = (lIdx === 0 || lIdx === len - 1);
+                        if (len > 3 && isEdge) {
+                            // Reject, continue searching
+                        } else {
+                            // Valid!
+                            return lIdx;
+                        }
+                    }
+                }
 
-            if (CONFIG.vowels.test(word[center])) return center;
-
-            for (let d = 1; d <= maxDist; d++) {
-                if (center - d >= 0 && CONFIG.vowels.test(word[center - d])) return center - d;
-                if (center + d < len && CONFIG.vowels.test(word[center + d])) return center + d;
+                // 2. Check RIGHT side
+                // Only check if d > 0 to avoid checking center twice
+                let rIdx = center + d;
+                if (d > 0 && rIdx < len) {
+                    if (CONFIG.vowels.test(word[rIdx])) {
+                        // Check Edge Rule
+                        const isEdge = (rIdx === 0 || rIdx === len - 1);
+                        if (len > 3 && isEdge) {
+                            // Reject
+                        } else {
+                            // Valid!
+                            return rIdx;
+                        }
+                    }
+                }
             }
-            return center;
+
+            // If no valid vowel found (or all rejected by edge rule), return fallback
+            return fallbackIndex;
         }
 
         function renderFrame(token) {
             if (!token) return;
 
+            // Detect Number
             const isNumber = /^\d+$/.test(token);
 
             if (isNumber) {
-                // Number Mode:
-                // 1. No Left/Right parts
-                // 2. Full number in Center
-                // 3. 'is-number' class changes color to Gray but keeps Reticle
+                // Number Mode: Center broadly, no red highlight
                 DOM.rLeft.innerText = '';
                 DOM.rRight.innerText = '';
                 DOM.rPivot.innerText = token;
                 DOM.rPivot.classList.add('is-number');
             } else {
-                // Word Mode:
-                // 1. Split Left/Right
-                // 2. Single char in Center
-                // 3. Red color
+                // Word Mode: Apply Spiral Logic
                 DOM.rPivot.classList.remove('is-number');
                 
                 const pivotIdx = getOptimalPivot(token);
+                
                 const left = token.substring(0, pivotIdx);
                 const pivot = token[pivotIdx];
                 const right = token.substring(pivotIdx + 1);
@@ -415,18 +437,21 @@
             }
         }
 
-        // --- Streaming Logic ---
+        // --- Stream Engine ---
+
         function startStream() {
             const rawText = DOM.textInput.value;
             if (!rawText.trim()) return alert("Buffer empty.");
 
             const cleanText = cleanInputText(rawText);
 
+            // Lock UI
             DOM.inputLayer.style.opacity = '0';
             DOM.inputLayer.style.pointerEvents = 'none';
             DOM.readerLayer.classList.add('active');
             STATE.isStreaming = true;
 
+            // Synthesize
             const utterance = new SpeechSynthesisUtterance(cleanText);
             const voiceIdx = DOM.voiceSelect.value;
             if (STATE.voices[voiceIdx]) utterance.voice = STATE.voices[voiceIdx];
@@ -434,6 +459,7 @@
             utterance.rate = parseFloat(DOM.rateRange.value);
             utterance.pitch = 1.0;
 
+            // Sync Logic
             utterance.onboundary = (e) => {
                 if (e.name === 'word') {
                     const start = e.charIndex;
@@ -451,7 +477,7 @@
             STATE.utterance = utterance;
             
             window.speechSynthesis.cancel();
-            setTimeout(() => window.speechSynthesis.speak(utterance), 100);
+            setTimeout(() => window.speechSynthesis.speak(utterance), 50);
         }
 
         function stopStream() {
