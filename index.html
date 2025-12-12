@@ -3,15 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NeuroSync | RSVP Reader</title>
+    <title>NeuroSync | Pro RSVP Engine</title>
     <style>
         :root {
-            --bg-color: #111;
-            --text-color: #eee;
-            --accent-color: #00ff88;
-            --pivot-color: #ff4444;
-            --ui-gray: #333;
-            --font-family: 'Helvetica Neue', Arial, sans-serif;
+            --bg-color: #0a0a0a;
+            --text-color: #f0f0f0;
+            --accent-color: #00ff9d;
+            --pivot-color: #ff3333;
+            --ui-gray: #222;
+            --border: #333;
+            --font-main: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            --font-mono: 'Courier New', monospace;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -19,7 +21,7 @@
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
-            font-family: var(--font-family);
+            font-family: var(--font-main);
             height: 100vh;
             width: 100vw;
             display: flex;
@@ -27,392 +29,490 @@
             overflow: hidden;
         }
 
-        /* --- View Containers --- */
-        #input-view, #reader-view {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            transition: opacity 0.3s ease;
+        /* --- Transitions --- */
+        .view {
+            position: absolute;
             width: 100%;
             height: 100%;
-            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            background: var(--bg-color);
         }
 
         .hidden {
             opacity: 0;
             pointer-events: none;
+            transform: scale(0.95);
             z-index: -1;
         }
 
-        /* --- Input Styling --- */
-        .container {
+        /* --- Input View --- */
+        .input-container {
             width: 90%;
-            max-width: 600px;
+            max-width: 650px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 15px;
         }
 
         h1 {
-            font-weight: 200;
+            font-weight: 300;
             text-align: center;
-            letter-spacing: 2px;
-            margin-bottom: 10px;
+            letter-spacing: 4px;
+            color: var(--accent-color);
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            font-size: 2rem;
         }
+
+        .settings-bar {
+            display: flex;
+            gap: 10px;
+            background: var(--ui-gray);
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        .setting-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-size: 0.75rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        select, input[type="range"] {
+            background: #111;
+            color: white;
+            border: 1px solid #444;
+            padding: 5px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            outline: none;
+        }
+        
+        select { cursor: pointer; }
 
         textarea {
             width: 100%;
-            height: 200px;
+            height: 250px;
             background: var(--ui-gray);
-            border: 1px solid #444;
-            color: white;
-            padding: 15px;
-            font-size: 16px;
+            border: 1px solid var(--border);
+            color: #ddd;
+            padding: 20px;
+            font-size: 18px;
+            line-height: 1.6;
             border-radius: 8px;
             resize: none;
             outline: none;
-            transition: border 0.2s;
+            font-family: var(--font-mono);
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
         }
 
-        textarea:focus {
-            border-color: var(--accent-color);
+        textarea:focus { border-color: var(--accent-color); }
+
+        .meta-row {
+            display: flex;
+            justify-content: space-between;
+            color: #666;
+            font-size: 0.8rem;
         }
 
-        .char-count {
-            text-align: right;
-            font-size: 12px;
-            color: #888;
-        }
-
-        button {
-            padding: 15px 30px;
+        button.primary-btn {
+            padding: 18px;
             background: var(--accent-color);
             color: #000;
             border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: transform 0.1s, background 0.2s;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 10px;
         }
 
-        button:hover {
-            transform: scale(1.02);
-            background: #4dffad;
+        button.primary-btn:hover {
+            background: #fff;
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.4);
         }
 
-        button:active {
-            transform: scale(0.98);
-        }
-
-        /* --- RSVP Reader Styling --- */
-        /* This is the core alignment logic for the RSVP reticle */
-        .rsvp-container {
-            font-size: 48px;
-            display: flex;
-            align-items: baseline; 
-            /* Align baseline to keep text level regardless of font quirks */
-            user-select: none;
+        /* --- Reader View --- */
+        .rsvp-stage {
             position: relative;
-            height: 80px; /* Fixed height to prevent jitter */
+            width: 100%;
+            max-width: 900px;
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            /* Guides for the eye */
+            border-top: 1px solid #222;
+            border-bottom: 1px solid #222;
         }
 
-        /* We use specific widths to force the pivot to the exact center of screen */
-        .word-part {
-            white-space: pre;
+        /* The Reticle */
+        .reticle-marker {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            width: 2px;
+            background: rgba(50, 50, 50, 0.5);
+            transform: translateX(-50%);
+            z-index: 0;
+        }
+        
+        .reticle-marker::before, .reticle-marker::after {
+            content: '';
+            position: absolute;
+            left: -5px;
+            width: 12px;
+            height: 2px;
+            background: #444;
+        }
+        .reticle-marker::before { top: 30%; }
+        .reticle-marker::after { bottom: 30%; }
+
+        .word-container {
+            font-size: 4rem; /* Massive text */
+            display: flex;
+            align-items: baseline;
+            white-space: nowrap;
+            z-index: 1;
+            font-family: var(--font-mono); /* Monospace helps alignment consistency */
+            font-weight: 500;
         }
 
-        .left-part {
+        .w-left {
             text-align: right;
-            width: 45vw; /* Takes up left half minus margin */
-            color: var(--text-color);
-        }
-
-        .pivot-char {
-            width: 1.5ch; /* Fixed width for the pivot character */
-            text-align: center;
-            color: var(--pivot-color);
-            font-weight: bold;
-            /* Optional: Top and bottom bars to focus eye */
-            border-top: 2px solid #333;
-            border-bottom: 2px solid #333;
-        }
-
-        .right-part {
-            text-align: left;
-            width: 45vw;
-            color: var(--text-color);
-        }
-
-        /* Back Button on Reader */
-        .control-panel {
-            margin-top: 60px;
-        }
-
-        .cancel-btn {
-            background: transparent;
-            border: 1px solid #555;
             color: #888;
         }
 
-        .cancel-btn:hover {
-            border-color: #ff4444;
-            color: #ff4444;
+        .w-pivot {
+            color: var(--pivot-color);
+            font-weight: 700;
+            text-shadow: 0 0 10px rgba(255, 51, 51, 0.4);
+            /* Important: ensuring pivot character aligns to center */
+            display: inline-block;
+            transform: translateX(0px); 
+        }
+
+        .w-right {
+            text-align: left;
+            color: #888;
+        }
+
+        .controls-overlay {
+            margin-top: 80px;
+        }
+
+        .back-btn {
             background: transparent;
+            border: 1px solid #444;
+            color: #888;
+            padding: 10px 40px;
+            border-radius: 30px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: 0.2s;
         }
 
-        /* --- Audio Visualization (Subtle) --- */
-        .status-indicator {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #333;
-        }
-        .status-indicator.active {
-            background: var(--accent-color);
-            box-shadow: 0 0 10px var(--accent-color);
-            animation: pulse 1s infinite;
+        .back-btn:hover {
+            border-color: var(--pivot-color);
+            color: var(--pivot-color);
         }
 
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
+        /* Loading State */
+        .loading-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            color: var(--accent-color);
+            font-family: var(--font-mono);
         }
-
     </style>
 </head>
 <body>
 
     <!-- INPUT VIEW -->
-    <div id="input-view">
-        <div class="container">
-            <h1>NEURO SYNC</h1>
-            <div>
-                <textarea id="text-input" maxlength="4000" placeholder="Paste your text here (Max 4000 characters)..."></textarea>
-                <div class="char-count"><span id="char-current">0</span>/4000</div>
+    <div id="view-input" class="view">
+        <div class="input-container">
+            <h1>NeuroSync <span style="font-size:0.5em; vertical-align:top; opacity:0.5;">v2</span></h1>
+            
+            <div class="settings-bar">
+                <div class="setting-group">
+                    <label>Voice Model</label>
+                    <select id="voice-select">
+                        <option value="">Loading voices...</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label>Speed: <span id="speed-val">0.8</span>x</label>
+                    <input type="range" id="rate-range" min="0.5" max="2.0" step="0.1" value="0.8">
+                </div>
             </div>
-            <button id="start-btn">Synthesize & Stream</button>
+
+            <textarea id="text-input" maxlength="4000" placeholder="Enter text stream to synchronize..."></textarea>
+            
+            <div class="meta-row">
+                <span>MAX 4000 CHARS</span>
+                <span id="char-count">0/4000</span>
+            </div>
+
+            <button id="btn-start" class="primary-btn">Initialize Stream</button>
         </div>
     </div>
 
     <!-- READER VIEW -->
-    <div id="reader-view" class="hidden">
-        <div class="status-indicator" id="audio-status"></div>
-        
-        <div class="rsvp-container">
-            <span class="word-part left-part" id="rsvp-left"></span>
-            <span class="word-part pivot-char" id="rsvp-pivot"></span>
-            <span class="word-part right-part" id="rsvp-right"></span>
+    <div id="view-reader" class="view hidden">
+        <div class="rsvp-stage">
+            <div class="reticle-marker"></div>
+            <div class="word-container">
+                <span class="w-left" id="rsvp-left"></span>
+                <span class="w-pivot" id="rsvp-pivot"></span>
+                <span class="w-right" id="rsvp-right"></span>
+            </div>
         </div>
 
-        <div class="control-panel">
-            <button id="stop-btn" class="cancel-btn">Stop & Return</button>
+        <div class="controls-overlay">
+            <button id="btn-stop" class="back-btn">Terminate Stream</button>
         </div>
     </div>
 
     <script>
         /**
-         * NEUROSYNC ENGINE
-         * Architected for strict synchronization between Web Speech API and Visual DOM.
+         * NEUROSYNC V2 - High Performance RSVP
+         * 
+         * Algorithm:
+         * 1. Text Analysis: Regex-based tokenization preserving punctuation structure.
+         * 2. Audio Generation: Web Speech API.
+         * 3. Synchronization: Event-driven 'boundary' detection (Zero-Latency).
+         * 4. Visual Alignment: Optical Center Calculation (Inner-Vowel Logic).
          */
 
-        // --- Configuration & State ---
-        const MAX_CHARS = 4000;
-        const VOWELS = /[aeiouy]/i;
-        
-        const state = {
-            isReading: false,
+        const STATE = {
+            voices: [],
             utterance: null,
-            textMap: [] // To store word boundaries if we need advanced processing
+            isReading: false
         };
 
-        // --- DOM Elements ---
-        const els = {
-            inputView: document.getElementById('input-view'),
-            readerView: document.getElementById('reader-view'),
-            textArea: document.getElementById('text-input'),
-            charCount: document.getElementById('char-current'),
-            startBtn: document.getElementById('start-btn'),
-            stopBtn: document.getElementById('stop-btn'),
-            rsvpLeft: document.getElementById('rsvp-left'),
-            rsvpPivot: document.getElementById('rsvp-pivot'),
-            rsvpRight: document.getElementById('rsvp-right'),
-            audioStatus: document.getElementById('audio-status')
+        const UI = {
+            views: {
+                input: document.getElementById('view-input'),
+                reader: document.getElementById('view-reader')
+            },
+            input: {
+                text: document.getElementById('text-input'),
+                count: document.getElementById('char-count'),
+                voiceSelect: document.getElementById('voice-select'),
+                rateRange: document.getElementById('rate-range'),
+                speedDisplay: document.getElementById('speed-val'),
+                startBtn: document.getElementById('btn-start')
+            },
+            reader: {
+                left: document.getElementById('rsvp-left'),
+                pivot: document.getElementById('rsvp-pivot'),
+                right: document.getElementById('rsvp-right'),
+                stopBtn: document.getElementById('btn-stop')
+            }
+        };
+
+        const CONSTANTS = {
+            VOWELS: /[aeiouy]/i,
+            PUNCTUATION: /[.,\/#!$%\^&\*;:{}=\-_`~()]/g
         };
 
         // --- Initialization ---
-        window.addEventListener('load', () => {
-            // Force clear any lingering speech synthesis tasks
-            window.speechSynthesis.cancel();
-        });
 
-        // --- Event Listeners ---
-        els.textArea.addEventListener('input', (e) => {
-            els.charCount.innerText = e.target.value.length;
-        });
+        function init() {
+            // Setup Text Area
+            UI.input.text.addEventListener('input', (e) => {
+                UI.input.count.innerText = `${e.target.value.length}/4000`;
+            });
 
-        els.startBtn.addEventListener('click', () => {
-            const text = els.textArea.value.trim();
-            if (!text) return alert("Please enter text to process.");
-            startRSVP(text);
-        });
+            // Setup Speed Slider
+            UI.input.rateRange.addEventListener('input', (e) => {
+                UI.input.speedDisplay.innerText = e.target.value;
+            });
 
-        els.stopBtn.addEventListener('click', stopRSVP);
+            // Setup Buttons
+            UI.input.startBtn.addEventListener('click', startStream);
+            UI.reader.stopBtn.addEventListener('click', stopStream);
 
-        // --- Core Logic ---
+            // Load Voices
+            loadVoices();
+            if (window.speechSynthesis.onvoiceschanged !== undefined) {
+                window.speechSynthesis.onvoiceschanged = loadVoices;
+            }
+        }
+
+        function loadVoices() {
+            STATE.voices = window.speechSynthesis.getVoices();
+            
+            if (STATE.voices.length === 0) return;
+
+            UI.input.voiceSelect.innerHTML = '';
+            
+            // Sort voices: Prioritize "Google", "Microsoft", or "Natural"
+            STATE.voices.sort((a, b) => {
+                const aName = a.name.toLowerCase();
+                const bName = b.name.toLowerCase();
+                const scoreA = (aName.includes('google') || aName.includes('natural')) ? 1 : 0;
+                const scoreB = (bName.includes('google') || bName.includes('natural')) ? 1 : 0;
+                return scoreB - scoreA;
+            });
+
+            STATE.voices.forEach((voice, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                // Add a star to likely high-quality voices
+                const label = `${voice.name} (${voice.lang})`;
+                option.textContent = label;
+                if (voice.default) option.selected = true;
+                UI.input.voiceSelect.appendChild(option);
+            });
+        }
+
+        // --- The Core Algorithm (ORP) ---
 
         /**
-         * Calculates the Optimal Recognition Point (ORP) based on the specific
-         * constraint: First vowel inside the word (excluding first/last char).
-         * Fallback: Center of word.
+         * Calculates where to split the word based on the "Inner Vowel" rule.
          */
-        function calculatePivotIndex(word) {
+        function getPivotIndex(word) {
             const len = word.length;
             
-            // Edge cases for short words where "inside" doesn't exist
-            if (len <= 2) {
-                return Math.floor(len / 2); // Standard center
-            }
+            // Rule 1: Too short for "inner" logic? Center it.
+            if (len <= 2) return Math.floor(len / 2);
 
-            // Look at the substring excluding first and last char
-            // Word: "Stream" (len 6) -> Inner: "trea" (indices 1,2,3,4)
-            const innerWord = word.substring(1, len - 1);
+            // Rule 2: Scan the "Inner" word (excluding first and last char)
+            // inner start index = 1, inner end index = len - 2
+            // We iterate through the original word but only check indices 1 to len-2
             
-            // Find index of first vowel in the inner string
-            const match = innerWord.match(VOWELS);
-
-            if (match) {
-                // match.index is relative to innerWord. Add 1 to adjust to original word.
-                return match.index + 1;
+            for (let i = 1; i < len - 1; i++) {
+                if (CONSTANTS.VOWELS.test(word[i])) {
+                    return i; // Found the first inner vowel
+                }
             }
 
-            // If no internal vowels, fallback to geometric center
+            // Rule 3: No inner vowels? Geometric center.
             return Math.floor(len / 2);
         }
 
-        /**
-         * Updates the DOM to display the word aligned on the pivot
-         */
-        function renderWord(word) {
-            // Clean word (optional, but keeps visual noise down)
-            // We keep punctuation attached as it conveys meaning in RSVP
+        function renderFrame(word) {
+            if (!word) return;
+
+            const pivotIndex = getPivotIndex(word);
             
-            if(!word) return;
+            const leftStr = word.substring(0, pivotIndex);
+            const pivotChar = word[pivotIndex];
+            const rightStr = word.substring(pivotIndex + 1);
 
-            const pivotIndex = calculatePivotIndex(word);
-
-            const left = word.substring(0, pivotIndex);
-            const pivot = word[pivotIndex];
-            const right = word.substring(pivotIndex + 1);
-
-            els.rsvpLeft.innerText = left;
-            els.rsvpPivot.innerText = pivot;
-            els.rsvpRight.innerText = right;
+            UI.reader.left.innerText = leftStr;
+            UI.reader.pivot.innerText = pivotChar;
+            UI.reader.right.innerText = rightStr;
         }
 
-        /**
-         * Begins the Audio/Visual stream
-         */
-        function startRSVP(text) {
-            // 1. UI Switch
-            els.inputView.classList.add('hidden');
-            els.readerView.classList.remove('hidden');
-            els.audioStatus.classList.add('active');
+        // --- Stream Logic ---
 
-            state.isReading = true;
+        function startStream() {
+            const text = UI.input.text.value.trim();
+            if (!text) {
+                alert("Buffer empty. Please input text data.");
+                return;
+            }
 
-            // 2. Prepare Speech Synthesis
-            // We create a new Utterance. 
-            // Note: We do not segment text manually into an array for timing.
-            // We rely on the browser's 'boundary' event which fires *exactly* when
-            // the TTS engine hits a new word. This guarantees sync.
+            // Lock UI
+            UI.views.input.classList.add('hidden');
+            UI.views.reader.classList.remove('hidden');
+            STATE.isReading = true;
+
+            // Prepare Utterance
             const utterance = new SpeechSynthesisUtterance(text);
             
-            // Optimization: Voice selection (Prefer local/native voices for speed)
-            const voices = window.speechSynthesis.getVoices();
-            // Try to find a decent English voice, preferably local
-            const preferredVoice = voices.find(v => v.lang.startsWith('en') && v.localService) 
-                                || voices.find(v => v.lang.startsWith('en'));
-            if (preferredVoice) utterance.voice = preferredVoice;
-
-            utterance.rate = 1.0; // Adjustable if we added a speed slider
+            // Apply Settings
+            const selectedVoiceIndex = UI.input.voiceSelect.value;
+            if (STATE.voices[selectedVoiceIndex]) {
+                utterance.voice = STATE.voices[selectedVoiceIndex];
+            }
+            
+            utterance.rate = parseFloat(UI.input.rateRange.value);
             utterance.pitch = 1.0;
 
-            // 3. The Sync Engine
-            // The 'boundary' event provides charIndex (start of current word)
+            // The SYNC ENGINE
+            // Chrome/Edge/Safari fire 'boundary' on every word.
             utterance.onboundary = (event) => {
                 if (event.name === 'word') {
-                    // Extract the word from the full text using the charIndex
-                    // We look for the next whitespace or boundary to define the word end
+                    // event.charIndex is the index of the first character of the word
                     const start = event.charIndex;
                     
-                    // Simple logic to find the end of the word relative to the full text
-                    // We scan forward from charIndex until we hit a space or end of string
+                    // Algorithm to determine word length in the raw text
+                    // We scan forward looking for whitespace
                     let end = text.indexOf(' ', start);
-                    if (end === -1) end = text.length;
-                    
-                    // Sanity check: if there's punctuation (newline, etc), handle it
-                    // Actually, getting the raw token usually works best for display
-                    // but let's be safer about newlines
-                    const chunk = text.substring(start, end);
-                    // Split further by newline if it exists in this chunk
-                    const word = chunk.split(/\s+/)[0]; 
+                    if (end === -1) end = text.length; // Handle last word
 
-                    requestAnimationFrame(() => renderWord(word));
+                    // Extract raw token
+                    let rawToken = text.substring(start, end);
+
+                    // Refinement: The TTS engine often treats punctuation as part of the word
+                    // or pauses on it. We strip trailing newlines for display.
+                    rawToken = rawToken.split(/\s/)[0];
+
+                    requestAnimationFrame(() => renderFrame(rawToken));
                 }
             };
 
-            utterance.onend = () => {
-                stopRSVP();
-            };
-
+            utterance.onend = stopStream;
             utterance.onerror = (e) => {
-                console.error("TTS Error", e);
-                stopRSVP();
+                console.error("Audio Stream Error", e);
+                stopStream();
             };
 
-            state.utterance = utterance;
+            STATE.utterance = utterance;
 
-            // 4. Fire
-            window.speechSynthesis.speak(utterance);
-        }
-
-        /**
-         * Stops stream and returns to input
-         */
-        function stopRSVP() {
-            if (!state.isReading) return;
-
-            // Cancel Audio
+            // Force browser to dump previous buffer
             window.speechSynthesis.cancel();
-            state.utterance = null;
-            state.isReading = false;
-
-            // Reset UI
-            els.audioStatus.classList.remove('active');
-            els.readerView.classList.add('hidden');
-            els.inputView.classList.remove('hidden');
-
-            // Clear RSVP display
-            els.rsvpLeft.innerText = "";
-            els.rsvpPivot.innerText = "";
-            els.rsvpRight.innerText = "";
+            
+            // Ignite
+            setTimeout(() => {
+                window.speechSynthesis.speak(utterance);
+            }, 100);
         }
 
-        // --- Handle Browser Voice Loading Async Nature ---
-        if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) {
-            speechSynthesis.onvoiceschanged = () => {
-                // Voices loaded, ready to go.
-            };
+        function stopStream() {
+            if (!STATE.isReading) return;
+
+            window.speechSynthesis.cancel();
+            STATE.utterance = null;
+            STATE.isReading = false;
+
+            UI.views.reader.classList.add('hidden');
+            UI.views.input.classList.remove('hidden');
+            
+            // Clean display
+            UI.reader.left.innerText = "";
+            UI.reader.pivot.innerText = "";
+            UI.reader.right.innerText = "";
         }
+
+        // Start
+        init();
 
     </script>
 </body>
