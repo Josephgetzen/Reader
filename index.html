@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NeuroSync | Refined Logic</title>
+    <title>NeuroSync | HD Stream</title>
     <style>
         :root {
-            --bg-color: #111;
-            --text-main: #f4f4f4;
+            --bg-color: #050505;
+            --text-main: #e1e1e1;
             --text-muted: #555;
             --accent-color: #00ffcc;
-            --pivot-color: #ff3333; /* The red highlight */
-            --ui-bg: #1e1e24;
-            --border: #333;
-            --font-stack: 'Inter', system-ui, sans-serif;
+            --pivot-color: #ff2a2a; /* High contrast red */
+            --ui-bg: #15151a;
+            --border: #2a2a30;
+            --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
             --font-read: 'Courier New', Courier, monospace; 
         }
 
@@ -22,7 +22,7 @@
         body {
             background-color: var(--bg-color);
             color: var(--text-main);
-            font-family: var(--font-stack);
+            font-family: var(--font-ui);
             height: 100vh;
             width: 100vw;
             overflow: hidden;
@@ -30,60 +30,81 @@
             flex-direction: column;
         }
 
-        /* --- Input View --- */
-        #input-layer {
+        /* --- Transitions --- */
+        .layer {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: 10;
             background: var(--bg-color);
-            transition: opacity 0.4s ease;
+            transition: opacity 0.4s ease, transform 0.4s ease;
         }
 
-        .config-card {
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.98);
+        }
+
+        /* --- Input View --- */
+        .card {
             width: 90%;
             max-width: 650px;
             background: var(--ui-bg);
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: 16px;
             padding: 30px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
         }
 
         h1 {
-            font-weight: 300;
+            font-weight: 200;
             text-align: center;
-            letter-spacing: 5px;
-            margin-bottom: 25px;
+            letter-spacing: 6px;
+            margin-bottom: 20px;
             color: var(--accent-color);
             text-transform: uppercase;
+            font-size: 1.8rem;
         }
 
-        .controls-row {
-            display: flex;
+        .controls {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
             gap: 15px;
             margin-bottom: 20px;
         }
 
-        .control-group {
-            flex: 1;
+        .field {
             display: flex;
             flex-direction: column;
             gap: 8px;
         }
 
-        label { font-size: 0.7rem; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+        label { 
+            font-size: 0.7rem; 
+            color: #888; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            font-weight: 600;
+        }
 
         select, input[type="range"] {
             background: #0a0a0c;
             border: 1px solid var(--border);
             color: white;
             padding: 10px;
-            border-radius: 4px;
+            border-radius: 6px;
             outline: none;
+            font-family: var(--font-ui);
+        }
+
+        .hint {
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
         }
 
         textarea {
@@ -99,85 +120,69 @@
             resize: none;
             outline: none;
             font-family: var(--font-read);
+            margin-bottom: 5px;
         }
-
         textarea:focus { border-color: var(--accent-color); }
 
-        button.action-btn {
+        button.primary {
             width: 100%;
             margin-top: 20px;
-            padding: 15px;
+            padding: 18px;
             background: var(--accent-color);
             color: #000;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             font-weight: 800;
-            letter-spacing: 1px;
+            letter-spacing: 1.5px;
             cursor: pointer;
             text-transform: uppercase;
-            transition: 0.2s;
+            transition: all 0.2s;
         }
-        button.action-btn:hover { background: #fff; }
+        button.primary:hover { 
+            background: #fff; 
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.3);
+        }
 
         /* --- Reader View --- */
-        #reader-layer {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg-color);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.5s ease;
-        }
-
-        #reader-layer.active {
-            opacity: 1;
-            pointer-events: all;
-        }
-
-        /* 
-           GRID SYSTEM FOR PERFECT CENTERING
-           The center column fits the content (auto), while left/right take 1fr.
-           This physically locks the center column to the middle of the screen.
-        */
-        .rsvp-grid {
+        /* Strict Grid Architecture for Perfect Centering */
+        .rsvp-stage {
             display: grid;
             grid-template-columns: 1fr auto 1fr; 
             align-items: baseline;
             width: 100%;
+            max-width: 95vw;
             user-select: none;
         }
 
-        .word-part {
+        .word-chunk {
             font-family: var(--font-read);
             font-size: 5rem; 
             white-space: pre; 
             line-height: 1;
         }
 
-        .part-left {
+        /* Left Side */
+        .c-left {
             text-align: right;
             color: var(--text-muted);
             justify-self: end;
             overflow: hidden; 
-            max-width: 42vw;
+            max-width: 45vw;
         }
 
-        .part-pivot {
+        /* The Pivot (Center) */
+        .c-pivot {
             color: var(--pivot-color);
             font-weight: 700;
             text-align: center;
             min-width: 1ch; 
             position: relative;
-            z-index: 2;
+            z-index: 10;
         }
 
-        /* Reticle Bars */
-        .part-pivot:not(.is-number)::before, 
-        .part-pivot:not(.is-number)::after {
+        /* Reticle Bars (Focus Guides) */
+        .c-pivot:not(.is-num)::before, 
+        .c-pivot:not(.is-num)::after {
             content: '';
             position: absolute;
             left: 50%;
@@ -186,314 +191,314 @@
             height: 20px;
             background: #333;
         }
-        .part-pivot:not(.is-number)::before { top: -30px; }
-        .part-pivot:not(.is-number)::after { bottom: -30px; }
+        .c-pivot:not(.is-num)::before { top: -35px; }
+        .c-pivot:not(.is-num)::after { bottom: -35px; }
 
-        /* Number Styling: White, No Bold, No Reticle */
-        .part-pivot.is-number {
+        /* Number Handling */
+        .c-pivot.is-num {
             color: #fff;
             font-weight: 400;
         }
 
-        .part-right {
+        /* Right Side */
+        .c-right {
             text-align: left;
             color: var(--text-muted);
             justify-self: start;
             overflow: hidden;
-            max-width: 42vw;
+            max-width: 45vw;
         }
 
-        .reader-controls {
+        .hud {
             position: absolute;
             bottom: 80px;
         }
 
-        button.secondary-btn {
+        button.stop-btn {
             background: transparent;
             border: 1px solid #444;
-            color: #666;
+            color: #888;
             padding: 12px 40px;
             border-radius: 30px;
             cursor: pointer;
             text-transform: uppercase;
             font-weight: 600;
+            letter-spacing: 1px;
             transition: 0.2s;
         }
-        button.secondary-btn:hover { border-color: var(--pivot-color); color: var(--pivot-color); }
+        button.stop-btn:hover { border-color: #ff4444; color: #ff4444; }
 
     </style>
 </head>
 <body>
 
-    <!-- INPUT -->
-    <div id="input-layer">
-        <div class="config-card">
-            <h1>NeuroSync <span style="font-size:0.4em; opacity:0.5; vertical-align: top;">V3</span></h1>
+    <!-- SETTINGS LAYER -->
+    <div id="layer-input" class="layer">
+        <div class="card">
+            <h1>NeuroSync <span style="font-size:0.4em; opacity:0.5; vertical-align:top;">HD</span></h1>
             
-            <div class="controls-row">
-                <div class="control-group">
-                    <label>Voice Model</label>
-                    <select id="voice-select"><option>Loading...</option></select>
+            <div class="controls">
+                <div class="field">
+                    <label>Neural Voice Model</label>
+                    <select id="sel-voice"><option>Initializing...</option></select>
+                    <div class="hint">★ indicates high-fidelity AI model</div>
                 </div>
-                <div class="control-group">
-                    <label>WPM Multiplier</label>
+                <div class="field">
+                    <label>Pacing</label>
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <input type="range" id="rate-range" min="0.5" max="2.0" step="0.1" value="0.9">
-                        <span id="speed-display" style="font-size:0.8rem; width:30px;">0.9</span>
+                        <input type="range" id="rng-rate" min="0.5" max="1.5" step="0.1" value="0.9">
+                        <span id="disp-rate" style="font-size:0.8rem; width:25px;">0.9</span>
                     </div>
                 </div>
             </div>
 
-            <textarea id="text-input" maxlength="4000" placeholder="Enter text. Punctuation will be stripped. Numbers remain intact."></textarea>
-            <div style="text-align:right; font-size:0.7rem; color:#555; margin-top:5px;">
-                <span id="char-count">0</span>/4000
+            <textarea id="txt-input" maxlength="4000" placeholder="Paste text here. 
+Punctuation is preserved in audio to create natural pauses, but stripped from the visual stream for clean reading."></textarea>
+            
+            <div style="text-align:right; font-size:0.7rem; color:#555;">
+                <span id="cnt-char">0</span>/4000
             </div>
 
-            <button id="btn-start" class="action-btn">Initialize Stream</button>
+            <button id="btn-start" class="primary">Initiate Stream</button>
         </div>
     </div>
 
-    <!-- READER -->
-    <div id="reader-layer">
-        <div class="rsvp-grid">
-            <div class="word-part part-left" id="rsvp-left"></div>
-            <div class="word-part part-pivot" id="rsvp-pivot"></div>
-            <div class="word-part part-right" id="rsvp-right"></div>
+    <!-- READING LAYER -->
+    <div id="layer-reader" class="layer hidden">
+        <div class="rsvp-stage">
+            <div class="word-chunk c-left" id="r-left"></div>
+            <div class="word-chunk c-pivot" id="r-pivot"></div>
+            <div class="word-chunk c-right" id="r-right"></div>
         </div>
 
-        <div class="reader-controls">
-            <button id="btn-stop" class="secondary-btn">Stop & Return</button>
+        <div class="hud">
+            <button id="btn-stop" class="stop-btn">Terminate</button>
         </div>
     </div>
 
     <script>
         /**
-         * NEUROSYNC ENGINE
-         * Component: Robust Text Cleaner & Advanced Spiral-ORP Algorithm
+         * NEUROSYNC V4 CORE
+         * Features: Decoupled Audio/Visual Punctuation, Pause Induction, Spiral Bias Logic
          */
 
-        const CONFIG = {
+        const CFG = {
             vowels: /[aeiouy]/i,
-            maxChars: 4000
+            // Punctuation that induces pauses but shouldn't be displayed
+            punctStrip: /[.,;:"!?)(\]\[}]/g 
         };
 
         const STATE = {
             voices: [],
             utterance: null,
-            isStreaming: false
+            active: false
         };
 
-        const DOM = {
-            inputLayer: document.getElementById('input-layer'),
-            readerLayer: document.getElementById('reader-layer'),
-            textInput: document.getElementById('text-input'),
-            charCount: document.getElementById('char-count'),
-            voiceSelect: document.getElementById('voice-select'),
-            rateRange: document.getElementById('rate-range'),
-            speedDisplay: document.getElementById('speed-display'),
-            btnStart: document.getElementById('btn-start'),
-            btnStop: document.getElementById('btn-stop'),
-            rLeft: document.getElementById('rsvp-left'),
-            rPivot: document.getElementById('rsvp-pivot'),
-            rRight: document.getElementById('rsvp-right')
+        const UI = {
+            layers: { input: document.getElementById('layer-input'), reader: document.getElementById('layer-reader') },
+            in: {
+                voice: document.getElementById('sel-voice'),
+                rate: document.getElementById('rng-rate'),
+                rateDisp: document.getElementById('disp-rate'),
+                text: document.getElementById('txt-input'),
+                count: document.getElementById('cnt-char'),
+                start: document.getElementById('btn-start')
+            },
+            out: {
+                left: document.getElementById('r-left'),
+                pivot: document.getElementById('r-pivot'),
+                right: document.getElementById('r-right'),
+                stop: document.getElementById('btn-stop')
+            }
         };
 
         // --- Init ---
-        window.addEventListener('DOMContentLoaded', () => {
-            initVoices();
-            DOM.btnStart.addEventListener('click', startStream);
-            DOM.btnStop.addEventListener('click', stopStream);
-            
-            DOM.rateRange.addEventListener('input', (e) => {
-                DOM.speedDisplay.innerText = e.target.value;
-            });
-
-            DOM.textInput.addEventListener('input', (e) => {
-                DOM.charCount.innerText = e.target.value.length;
-            });
-
+        window.addEventListener('load', () => {
+            loadVoices();
             if (speechSynthesis.onvoiceschanged !== undefined) {
-                speechSynthesis.onvoiceschanged = initVoices;
+                speechSynthesis.onvoiceschanged = loadVoices;
             }
+            
+            UI.in.rate.addEventListener('input', e => UI.in.rateDisp.innerText = e.target.value);
+            UI.in.text.addEventListener('input', e => UI.in.count.innerText = e.target.value.length);
+            UI.in.start.addEventListener('click', startSequence);
+            UI.out.stop.addEventListener('click', stopSequence);
         });
 
-        function initVoices() {
-            const voices = speechSynthesis.getVoices();
-            if(!voices.length) return;
-            
-            STATE.voices = voices;
-            DOM.voiceSelect.innerHTML = '';
+        function loadVoices() {
+            const allVoices = speechSynthesis.getVoices();
+            if (!allVoices.length) return;
 
-            const sorted = voices.sort((a,b) => {
-                const langA = a.lang.startsWith('en') ? -1 : 1;
-                const langB = b.lang.startsWith('en') ? -1 : 1;
-                return langA - langB;
+            // Filter duplicates and sort for Quality
+            STATE.voices = allVoices.sort((a, b) => {
+                // Priority 1: English
+                const engA = a.lang.startsWith('en') ? 1 : 0;
+                const engB = b.lang.startsWith('en') ? 1 : 0;
+                if (engA !== engB) return engB - engA;
+
+                // Priority 2: "Natural" / "Google" (Better Quality)
+                const qualA = (a.name.includes('Natural') || a.name.includes('Google')) ? 1 : 0;
+                const qualB = (b.name.includes('Natural') || b.name.includes('Google')) ? 1 : 0;
+                return qualB - qualA;
             });
 
-            sorted.forEach((v, i) => {
+            UI.in.voice.innerHTML = '';
+            STATE.voices.forEach((v, i) => {
                 const opt = document.createElement('option');
                 opt.value = i;
-                opt.textContent = `${v.name} (${v.lang})`;
-                if(v.name.includes("Google") || v.name.includes("Natural")) {
-                    opt.selected = true;
-                }
-                DOM.voiceSelect.appendChild(opt);
+                const star = (v.name.includes('Natural') || v.name.includes('Google')) ? '★ ' : '';
+                opt.textContent = `${star}${v.name} (${v.lang})`;
+                if (star) opt.style.fontWeight = 'bold';
+                
+                // Default to a good voice
+                if (v.default && i < 5) opt.selected = true;
+                
+                UI.in.voice.appendChild(opt);
             });
         }
 
-        // --- Text Pre-Processing ---
-        function cleanInputText(raw) {
+        // --- Data Preparation ---
+
+        function prepareStream(raw) {
             let t = raw;
-            // Normalize spaces/newlines
-            t = t.replace(/[\r\n]+/g, ' ');
-            // Space out numbers to treat them as words
+            // 1. Pad Numbers (preserve them as words)
             t = t.replace(/(\d+)/g, ' $1 ');
-            // Strip bad characters (keep letters, numbers, spaces)
-            t = t.replace(/[^\w\s]|_/g, ""); 
-            // Fix double spaces
+            
+            // 2. Induce Pauses: Convert newlines to periods to force breaks
+            t = t.replace(/[\r\n]+/g, '. ');
+
+            // 3. Ensure punctuation has trailing space (helps TTS engine parse tokens)
+            t = t.replace(/([.,;?!])/g, '$1 ');
+
+            // 4. Normalize spaces
             t = t.replace(/\s+/g, ' ');
+
             return t.trim();
         }
 
-        // --- Refined Spiral Algorithm ---
-        function getOptimalPivot(word) {
+        // --- Optical Alignment Algorithm (V4) ---
+        // Rules: Spiral out. Check Left first. If edge char & long word, skip.
+        function getFocusIndex(word) {
             const len = word.length;
-            
-            // Fallback: Geometric Center
-            // Logic: "Center or first left of center if even".
-            // Even (4): ceil(2)-1 = 1. Odd (5): ceil(2.5)-1 = 2.
-            const fallbackIndex = Math.ceil(len / 2) - 1;
-
-            if (len <= 1) return 0;
-
-            // Start spiral from geometric center
             const center = Math.floor(len / 2);
             
-            // Loop Distance from 0 to bounds
+            // Short word optimization
+            if (len <= 2) return 0; // Always start for very short
+
+            // Fallback: Geometric Center (Left-leaning for evens)
+            let bestIndex = Math.ceil(len / 2) - 1;
+
+            // Spiral Search
             for (let d = 0; d < len; d++) {
                 
-                // 1. Check LEFT side first (Bias requirement)
-                let lIdx = center - d;
-                if (lIdx >= 0) {
-                    if (CONFIG.vowels.test(word[lIdx])) {
-                        // Check Edge Rule:
-                        // If word > 3 chars, reject if index is 0 or len-1
-                        const isEdge = (lIdx === 0 || lIdx === len - 1);
-                        if (len > 3 && isEdge) {
-                            // Reject, continue searching
-                        } else {
-                            // Valid!
-                            return lIdx;
-                        }
-                    }
-                }
+                // Check Left (Priority)
+                let l = center - d;
+                if (l >= 0 && isValidVowel(word, l, len)) return l;
 
-                // 2. Check RIGHT side
-                // Only check if d > 0 to avoid checking center twice
-                let rIdx = center + d;
-                if (d > 0 && rIdx < len) {
-                    if (CONFIG.vowels.test(word[rIdx])) {
-                        // Check Edge Rule
-                        const isEdge = (rIdx === 0 || rIdx === len - 1);
-                        if (len > 3 && isEdge) {
-                            // Reject
-                        } else {
-                            // Valid!
-                            return rIdx;
-                        }
-                    }
-                }
+                // Check Right (Secondary)
+                let r = center + d;
+                if (r < len && d > 0 && isValidVowel(word, r, len)) return r;
             }
 
-            // If no valid vowel found (or all rejected by edge rule), return fallback
-            return fallbackIndex;
+            return bestIndex;
         }
 
-        function renderFrame(token) {
-            if (!token) return;
-
-            // Detect Number
-            const isNumber = /^\d+$/.test(token);
-
-            if (isNumber) {
-                // Number Mode: Center broadly, no red highlight
-                DOM.rLeft.innerText = '';
-                DOM.rRight.innerText = '';
-                DOM.rPivot.innerText = token;
-                DOM.rPivot.classList.add('is-number');
-            } else {
-                // Word Mode: Apply Spiral Logic
-                DOM.rPivot.classList.remove('is-number');
-                
-                const pivotIdx = getOptimalPivot(token);
-                
-                const left = token.substring(0, pivotIdx);
-                const pivot = token[pivotIdx];
-                const right = token.substring(pivotIdx + 1);
-
-                DOM.rLeft.innerText = left;
-                DOM.rPivot.innerText = pivot;
-                DOM.rRight.innerText = right;
-            }
-        }
-
-        // --- Stream Engine ---
-
-        function startStream() {
-            const rawText = DOM.textInput.value;
-            if (!rawText.trim()) return alert("Buffer empty.");
-
-            const cleanText = cleanInputText(rawText);
-
-            // Lock UI
-            DOM.inputLayer.style.opacity = '0';
-            DOM.inputLayer.style.pointerEvents = 'none';
-            DOM.readerLayer.classList.add('active');
-            STATE.isStreaming = true;
-
-            // Synthesize
-            const utterance = new SpeechSynthesisUtterance(cleanText);
-            const voiceIdx = DOM.voiceSelect.value;
-            if (STATE.voices[voiceIdx]) utterance.voice = STATE.voices[voiceIdx];
+        // Helper to validate a vowel index against edge rules
+        function isValidVowel(word, index, len) {
+            if (!CFG.vowels.test(word[index])) return false;
             
-            utterance.rate = parseFloat(DOM.rateRange.value);
-            utterance.pitch = 1.0;
+            // Edge Rule: If word > 3 chars, first and last char shouldn't be pivot
+            if (len > 3) {
+                if (index === 0 || index === len - 1) return false;
+            }
+            return true;
+        }
 
-            // Sync Logic
-            utterance.onboundary = (e) => {
+        // --- Renderer ---
+        function render(rawToken) {
+            if (!rawToken) return;
+
+            // 1. Visual Cleaning: Strip punctuation for display
+            // We keep the rawToken in the audio stream, but hide it here
+            const displayToken = rawToken.replace(CFG.punctStrip, '');
+            
+            if (!displayToken) return; // Happens if token was just ","
+
+            // 2. Number Mode
+            if (/^\d+$/.test(displayToken)) {
+                UI.out.left.innerText = '';
+                UI.out.right.innerText = '';
+                UI.out.pivot.innerText = displayToken;
+                UI.out.pivot.classList.add('is-num');
+                return;
+            }
+
+            // 3. Standard Mode
+            UI.out.pivot.classList.remove('is-num');
+            const idx = getFocusIndex(displayToken);
+            
+            UI.out.left.innerText = displayToken.substring(0, idx);
+            UI.out.pivot.innerText = displayToken[idx];
+            UI.out.right.innerText = displayToken.substring(idx + 1);
+        }
+
+        // --- Stream Logic ---
+
+        function startSequence() {
+            const raw = UI.in.text.value;
+            if (!raw.trim()) return alert("No text data detected.");
+
+            const audioText = prepareStream(raw);
+
+            // Switch UI
+            UI.layers.input.classList.add('hidden');
+            UI.layers.reader.classList.remove('hidden');
+            STATE.active = true;
+
+            // Setup Audio
+            const utt = new SpeechSynthesisUtterance(audioText);
+            const vIdx = UI.in.voice.value;
+            if (STATE.voices[vIdx]) utt.voice = STATE.voices[vIdx];
+            
+            utt.rate = parseFloat(UI.in.rate.value);
+            utt.pitch = 1.0;
+
+            // THE SYNC ENGINE
+            utt.onboundary = (e) => {
                 if (e.name === 'word') {
+                    // Extract token using charIndex
                     const start = e.charIndex;
-                    let end = cleanText.indexOf(' ', start);
-                    if (end === -1) end = cleanText.length;
+                    // Find next space to delimit word
+                    let end = audioText.indexOf(' ', start);
+                    if (end === -1) end = audioText.length;
                     
-                    const token = cleanText.substring(start, end);
-                    requestAnimationFrame(() => renderFrame(token));
+                    const rawToken = audioText.substring(start, end);
+                    
+                    // Render (Async to prevent blocking audio thread)
+                    requestAnimationFrame(() => render(rawToken));
                 }
             };
 
-            utterance.onend = stopStream;
-            utterance.onerror = (e) => { console.error(e); stopStream(); };
+            utt.onend = stopSequence;
+            utt.onerror = (e) => { console.error(e); stopSequence(); };
 
-            STATE.utterance = utterance;
-            
+            STATE.utterance = utt;
             window.speechSynthesis.cancel();
-            setTimeout(() => window.speechSynthesis.speak(utterance), 50);
+            setTimeout(() => window.speechSynthesis.speak(utt), 50);
         }
 
-        function stopStream() {
-            if (!STATE.isStreaming) return;
+        function stopSequence() {
+            if (!STATE.active) return;
             
             window.speechSynthesis.cancel();
-            STATE.isStreaming = false;
-            STATE.utterance = null;
+            STATE.active = false;
+            
+            UI.layers.reader.classList.add('hidden');
+            UI.layers.input.classList.remove('hidden');
 
-            DOM.readerLayer.classList.remove('active');
-            DOM.inputLayer.style.opacity = '1';
-            DOM.inputLayer.style.pointerEvents = 'all';
-
-            DOM.rLeft.innerText = '';
-            DOM.rPivot.innerText = '';
-            DOM.rRight.innerText = '';
+            UI.out.left.innerText = '';
+            UI.out.pivot.innerText = '';
+            UI.out.right.innerText = '';
         }
 
     </script>
