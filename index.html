@@ -3,19 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NeuroSync | True-Center RSVP</title>
+    <title>NeuroSync | Clean Stream</title>
     <style>
         :root {
             --bg-color: #0f0f12;
             --text-main: #e0e0e0;
             --text-muted: #4a4a55;
             --accent-color: #00ffcc;
-            --pivot-color: #ff3333; /* Bright Red */
+            --pivot-color: #ff3333; 
             --ui-bg: #1a1a20;
             --border: #2a2a35;
-            /* Using a high-legibility font stack */
-            --font-stack: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            --font-read: 'Courier New', Courier, monospace; /* Monospace ensures perfect char widths */
+            --font-stack: 'Inter', system-ui, -apple-system, sans-serif;
+            --font-read: 'Courier New', Courier, monospace; 
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -41,7 +40,7 @@
             justify-content: center;
             z-index: 10;
             background: var(--bg-color);
-            transition: opacity 0.5s ease;
+            transition: opacity 0.4s ease;
         }
 
         .config-card {
@@ -57,7 +56,7 @@
         h1 {
             font-weight: 200;
             text-align: center;
-            letter-spacing: 3px;
+            letter-spacing: 4px;
             margin-bottom: 25px;
             color: var(--accent-color);
             text-transform: uppercase;
@@ -121,7 +120,7 @@
         button.action-btn:hover { filter: brightness(1.1); }
         button.action-btn:active { transform: scale(0.98); }
 
-        /* --- Reader View (The Grid System) --- */
+        /* --- Reader View --- */
         #reader-layer {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -141,24 +140,24 @@
         }
 
         /* 
-           STRICT GRID ALIGNMENT 
-           This is the key to fixing the centering issue.
-           We create a 3-column grid. The center column fits the content (the red letter).
-           The left and right columns take up exactly equal space (1fr), forcing the middle to true center.
+           GRID ALIGNMENT 
+           Columns: 1fr (Left) | auto (Center/Pivot) | 1fr (Right)
+           This forces the center column to be exactly in the middle of the screen
+           because the two outer columns push equally.
         */
         .rsvp-grid {
             display: grid;
             grid-template-columns: 1fr auto 1fr; 
             align-items: baseline;
             width: 100%;
-            max-width: 1200px; /* Prevent it from getting too spread out on 4k */
+            max-width: 1400px; 
             user-select: none;
         }
 
         .word-part {
-            font-family: var(--font-read); /* Monospace is critical for perfect jitter-free alignment */
-            font-size: 4rem; 
-            white-space: pre; /* Preserves spaces */
+            font-family: var(--font-read);
+            font-size: 4.5rem; 
+            white-space: pre; 
             line-height: 1;
         }
 
@@ -166,7 +165,6 @@
             text-align: right;
             color: var(--text-muted);
             justify-self: end;
-            /* Ensures strict cut-off if word is massive */
             overflow: hidden; 
             max-width: 45vw;
         }
@@ -175,14 +173,15 @@
             color: var(--pivot-color);
             font-weight: 900;
             text-align: center;
-            /* Fixed min-width ensures the 'gutter' stays stable even for thin letters like 'i' */
             min-width: 1ch; 
-            transform: scale(1.1); /* Slight pop for the red letter */
+            transform: scale(1.1);
             position: relative;
+            z-index: 2;
         }
 
-        /* The Reticle Bars (Visual Anchors) */
-        .part-pivot::before, .part-pivot::after {
+        /* The Reticle Bars (Visual Anchors) - Only for standard text */
+        .part-pivot:not(.is-number)::before, 
+        .part-pivot:not(.is-number)::after {
             content: '';
             position: absolute;
             left: 50%;
@@ -191,8 +190,15 @@
             height: 15px;
             background: #333;
         }
-        .part-pivot::before { top: -20px; }
-        .part-pivot::after { bottom: -20px; }
+        .part-pivot:not(.is-number)::before { top: -25px; }
+        .part-pivot:not(.is-number)::after { bottom: -25px; }
+
+        /* NUMBER STYLING OVERRIDE */
+        .part-pivot.is-number {
+            color: #ffffff; /* White instead of Red */
+            font-weight: 400; /* Normal weight */
+            transform: scale(1.0); /* No zoom */
+        }
 
         .part-right {
             text-align: left;
@@ -224,10 +230,10 @@
 </head>
 <body>
 
-    <!-- INPUT STATE -->
+    <!-- INPUT LAYER -->
     <div id="input-layer">
         <div class="config-card">
-            <h1>NeuroSync</h1>
+            <h1>NeuroSync <span style="font-size:0.4em; opacity:0.5; vertical-align: super;">Clean</span></h1>
             
             <div class="controls-row">
                 <div class="control-group">
@@ -235,15 +241,15 @@
                     <select id="voice-select"><option>Loading...</option></select>
                 </div>
                 <div class="control-group">
-                    <label>Speed (WPM Approx)</label>
+                    <label>WPM (Approx)</label>
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <input type="range" id="rate-range" min="0.5" max="1.5" step="0.1" value="0.7">
-                        <span id="speed-display" style="font-size:0.8rem; width:30px;">0.7</span>
+                        <input type="range" id="rate-range" min="0.5" max="2.0" step="0.1" value="0.8">
+                        <span id="speed-display" style="font-size:0.8rem; width:30px;">0.8</span>
                     </div>
                 </div>
             </div>
 
-            <textarea id="text-input" placeholder="Paste your reading material here (Max 4000 characters)..."></textarea>
+            <textarea id="text-input" maxlength="4000" placeholder="Paste text here. Punctuation will be removed automatically..."></textarea>
             <div style="text-align:right; font-size:0.7rem; color:#555; margin-top:5px;">
                 <span id="char-count">0</span>/4000
             </div>
@@ -252,7 +258,7 @@
         </div>
     </div>
 
-    <!-- READER STATE -->
+    <!-- READER LAYER -->
     <div id="reader-layer">
         <div class="rsvp-grid">
             <div class="word-part part-left" id="rsvp-left"></div>
@@ -267,13 +273,13 @@
 
     <script>
         /**
-         * NEUROSYNC ENGINE V3
-         * Focus: Strict Optical Alignment & Geometric Vowel Search
+         * NEUROSYNC ENGINE
+         * Features: Text Cleaning, Numeric Padding, Centered Number Rendering, Spiral ORP
          */
 
-        const CFG = {
+        const CONFIG = {
             vowels: /[aeiouy]/i,
-            maxLen: 4000
+            maxChars: 4000
         };
 
         const STATE = {
@@ -292,13 +298,12 @@
             speedDisplay: document.getElementById('speed-display'),
             btnStart: document.getElementById('btn-start'),
             btnStop: document.getElementById('btn-stop'),
-            // RSVP Elements
             rLeft: document.getElementById('rsvp-left'),
             rPivot: document.getElementById('rsvp-pivot'),
             rRight: document.getElementById('rsvp-right')
         };
 
-        // --- Initialization ---
+        // --- Init ---
         window.addEventListener('DOMContentLoaded', () => {
             initVoices();
             DOM.btnStart.addEventListener('click', startStream);
@@ -312,7 +317,6 @@
                 DOM.charCount.innerText = e.target.value.length;
             });
 
-            // Handle voice loading async
             if (speechSynthesis.onvoiceschanged !== undefined) {
                 speechSynthesis.onvoiceschanged = initVoices;
             }
@@ -325,8 +329,8 @@
             STATE.voices = voices;
             DOM.voiceSelect.innerHTML = '';
 
-            // Smart Sort: English first, then quality
             const sorted = voices.sort((a,b) => {
+                // Priority: English -> Local Service -> Name
                 const langA = a.lang.startsWith('en') ? -1 : 1;
                 const langB = b.lang.startsWith('en') ? -1 : 1;
                 return langA - langB;
@@ -336,7 +340,6 @@
                 const opt = document.createElement('option');
                 opt.value = i;
                 opt.textContent = `${v.name} (${v.lang})`;
-                // Auto-select a high quality natural voice if possible
                 if(v.name.includes("Google") || v.name.includes("Natural")) {
                     opt.selected = true;
                 }
@@ -344,112 +347,126 @@
             });
         }
 
-        // --- V3 Algorithm: Center-Weighted Vowel Search ---
-        /**
-         * Finds the Optimal Recognition Point (ORP).
-         * Logic: Start at geometric center. Spiral outward (left/right) looking for a vowel.
-         * If found, that's the pivot. If not found in range, use geometric center.
-         */
+        // --- Text Pre-Processor ---
+        function cleanInputText(raw) {
+            let t = raw;
+            
+            // 1. Normalize Newlines to spaces
+            t = t.replace(/[\r\n]+/g, ' ');
+
+            // 2. Pad Numbers: "Item5" -> "Item 5"
+            // We use spaces around digits to ensure they become standalone tokens
+            t = t.replace(/(\d+)/g, ' $1 ');
+
+            // 3. Remove Punctuation
+            // We strip standard punctuation but keep spaces and alphanumeric chars.
+            // Explicitly removing: . , ; : ! ? " ' ( ) [ ] { } - _ / \ |
+            // This regex removes anything that isn't a Letter, Number, or Space.
+            t = t.replace(/[^\w\s]|_/g, ""); 
+            
+            // 4. Collapse multiple spaces into one
+            t = t.replace(/\s+/g, ' ');
+
+            return t.trim();
+        }
+
+        // --- Alignment Algorithm ---
+
         function getOptimalPivot(word) {
             const len = word.length;
-            if (len === 0) return 0;
-            if (len === 1) return 0;
+            if (len <= 1) return 0;
 
-            const center = Math.floor(len / 2); // Geometric center
-            
-            // 1. Check strict center first
-            if (CFG.vowels.test(word[center])) return center;
+            const center = Math.floor(len / 2);
 
-            // 2. Spiral search for nearest vowel
-            // We check dist=1 (left, right), then dist=2 (left, right)...
-            const searchLimit = 3; // How far from center to look (prevent picking edge vowels in long words)
-            
-            for (let dist = 1; dist <= searchLimit; dist++) {
-                // Check Left
-                let leftIdx = center - dist;
-                if (leftIdx >= 0 && CFG.vowels.test(word[leftIdx])) {
-                    // Bias: In English, slight left-of-center preference is better for reading
-                    return leftIdx; 
-                }
+            // 1. Spiral Search for Vowel
+            // We check center, then -1,+1, then -2,+2
+            const maxDist = Math.min(4, center); // Don't go too far to edges on long words
 
+            if (CONFIG.vowels.test(word[center])) return center;
+
+            for (let d = 1; d <= maxDist; d++) {
+                // Check Left (Preferred for reading flow)
+                if (center - d >= 0 && CONFIG.vowels.test(word[center - d])) return center - d;
                 // Check Right
-                let rightIdx = center + dist;
-                if (rightIdx < len && CFG.vowels.test(word[rightIdx])) {
-                    return rightIdx;
-                }
+                if (center + d < len && CONFIG.vowels.test(word[center + d])) return center + d;
             }
 
-            // 3. Fallback: No central vowels found? Return geometric center (slightly left bias for even numbers)
-            return len % 2 === 0 ? (len / 2) - 1 : Math.floor(len / 2);
+            // 2. Fallback: Geometric Center
+            return center;
         }
 
-        function renderWord(rawWord) {
-            if (!rawWord) return;
+        function renderFrame(token) {
+            if (!token) return;
 
-            // Strip newlines/tabs but keep punctuation for context
-            const word = rawWord.replace(/[\n\r]/g, ''); 
-            if(!word) return;
+            // Check if it's a number
+            const isNumber = /^\d+$/.test(token);
 
-            const pivotIdx = getOptimalPivot(word);
+            if (isNumber) {
+                // --- Number Rendering Mode ---
+                // No split, whole token goes in center, no red color
+                DOM.rLeft.innerText = '';
+                DOM.rRight.innerText = '';
+                DOM.rPivot.innerText = token;
+                DOM.rPivot.classList.add('is-number');
+            } else {
+                // --- Standard Word Rendering Mode ---
+                DOM.rPivot.classList.remove('is-number');
+                
+                const pivotIdx = getOptimalPivot(token);
+                const left = token.substring(0, pivotIdx);
+                const pivot = token[pivotIdx];
+                const right = token.substring(pivotIdx + 1);
 
-            const left = word.substring(0, pivotIdx);
-            const pivot = word[pivotIdx];
-            const right = word.substring(pivotIdx + 1);
-
-            DOM.rLeft.innerText = left;
-            DOM.rPivot.innerText = pivot;
-            DOM.rRight.innerText = right;
+                DOM.rLeft.innerText = left;
+                DOM.rPivot.innerText = pivot;
+                DOM.rRight.innerText = right;
+            }
         }
 
-        // --- Stream Logic ---
+        // --- Streaming Logic ---
 
         function startStream() {
-            const text = DOM.textInput.value.trim();
-            if (!text) return alert("Please enter text.");
+            const rawText = DOM.textInput.value;
+            if (!rawText.trim()) return alert("Buffer empty.");
 
-            // UI Switch
+            // 1. Process Text
+            const cleanText = cleanInputText(rawText);
+
+            // 2. Switch UI
             DOM.inputLayer.style.opacity = '0';
             DOM.inputLayer.style.pointerEvents = 'none';
             DOM.readerLayer.classList.add('active');
-
             STATE.isStreaming = true;
 
-            // Setup Utterance
-            const utterance = new SpeechSynthesisUtterance(text);
+            // 3. Create Audio
+            const utterance = new SpeechSynthesisUtterance(cleanText);
             const voiceIdx = DOM.voiceSelect.value;
             if (STATE.voices[voiceIdx]) utterance.voice = STATE.voices[voiceIdx];
             
             utterance.rate = parseFloat(DOM.rateRange.value);
             utterance.pitch = 1.0;
 
-            // Boundary Event - The Heart of the Sync
+            // 4. Sync Engine
             utterance.onboundary = (e) => {
                 if (e.name === 'word') {
-                    // Logic to extract full word including punctuation
+                    // Because we cleaned the text first, the charIndex corresponds
+                    // perfectly to our cleaned version, not the dirty raw version.
                     const start = e.charIndex;
-                    // Scan forward for space
-                    let end = text.indexOf(' ', start);
-                    if (end === -1) end = text.length;
+                    let end = cleanText.indexOf(' ', start);
+                    if (end === -1) end = cleanText.length;
                     
-                    // Simple extraction
-                    const token = text.substring(start, end);
-                    
-                    // Direct render
-                    requestAnimationFrame(() => renderWord(token));
+                    const token = cleanText.substring(start, end);
+                    requestAnimationFrame(() => renderFrame(token));
                 }
             };
 
             utterance.onend = stopStream;
-            utterance.onerror = (e) => {
-                console.error(e);
-                stopStream();
-            };
+            utterance.onerror = (e) => { console.error(e); stopStream(); };
 
             STATE.utterance = utterance;
             
-            // Clear current queue and speak
             window.speechSynthesis.cancel();
-            setTimeout(() => window.speechSynthesis.speak(utterance), 50);
+            setTimeout(() => window.speechSynthesis.speak(utterance), 100);
         }
 
         function stopStream() {
@@ -462,8 +479,8 @@
             DOM.readerLayer.classList.remove('active');
             DOM.inputLayer.style.opacity = '1';
             DOM.inputLayer.style.pointerEvents = 'all';
-            
-            // Clean reader
+
+            // Clear visual buffer
             DOM.rLeft.innerText = '';
             DOM.rPivot.innerText = '';
             DOM.rRight.innerText = '';
