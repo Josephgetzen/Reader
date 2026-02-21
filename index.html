@@ -41,6 +41,11 @@
         }
         .hidden { opacity: 0; pointer-events: none; transform: scale(0.97); z-index: -1; }
 
+        /* --- Zen Fullscreen Mode --- */
+        body.zen-idle { cursor: none; }
+        body.zen-idle .hud { opacity: 0; pointer-events: none; }
+        body.zen-idle #sidebar { left: -320px; } /* Auto hide sidebar in zen mode */
+
         /* --- UI Card --- */
         .card {
             width: 90%; max-width: 800px; background: var(--ui-card); border: 1px solid var(--border);
@@ -98,12 +103,15 @@
         .sidebar-header h3 { font-size: 1rem; font-weight: 600; color: white; text-transform: uppercase; letter-spacing: 1px; }
         .close-btn { background: transparent; border: none; color: #888; font-size: 1.5rem; cursor: pointer; padding: 0 5px; }
         .close-btn:hover { color: var(--pivot-color); }
-        .sidebar-content { flex: 1; overflow-y: auto; padding: 10px 0; }
+        .sidebar-content { flex: 1; overflow-y: auto; padding: 10px 0; overflow-x: hidden; }
+        
         .struct-item {
             padding: 12px 20px; border-bottom: 1px solid #1a1c23; cursor: pointer; color: #aaa;
-            transition: 0.2s; font-size: 0.85rem; line-height: 1.4;
+            font-size: 0.85rem; line-height: 1.4; white-space: nowrap; overflow: hidden;
+            border-left: 3px solid transparent; transition: background 0.2s, color 0.2s;
         }
         .struct-item:hover { background: rgba(59, 130, 246, 0.1); color: white; border-left: 3px solid var(--accent-color); }
+        .marquee-text { display: inline-block; pointer-events: none; }
 
         /* --- Reader Stage --- */
         .rsvp-stage {
@@ -123,7 +131,7 @@
         .c-pivot.is-num { color: #fff; font-weight: 400; }
 
         /* --- HUD --- */
-        .hud { position: absolute; bottom: 30px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 15px; }
+        .hud { position: absolute; bottom: 30px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 15px; transition: opacity 0.5s ease; }
         
         .hud-top-row { display: flex; align-items: center; gap: 15px; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 30px; border: 1px solid var(--border); backdrop-filter: blur(5px); }
         
@@ -211,6 +219,7 @@
                     <button id="btn-jump">Go</button>
                 </div>
                 <select id="sel-hud-voice" class="hud-select" title="Change Voice On-the-Fly"></select>
+                <button id="btn-fullscreen" class="hud-btn" style="padding:6px 12px; font-size:1.2rem;" title="Zen Fullscreen">⛶</button>
             </div>
 
             <!-- Standard Controls -->
@@ -225,7 +234,7 @@
     <script>
         /**
          * ReadSync | Enterprise Architecture
-         * Added Features: Structural Heuristics, Nav Sidebar, Manual Word Jump, Live Voice Switching.
+         * Added Features: Zen Fullscreen Mode, Spacebar Mapping, Marquee 20-Word Sidebar Titles
          */
 
         if(window.pdfjsLib) window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
@@ -242,7 +251,7 @@
                 left: document.getElementById('r-left'), pivot: document.getElementById('r-pivot'), right: document.getElementById('r-right'),
                 pause: document.getElementById('btn-pause'), bookmark: document.getElementById('btn-bookmark'), stop: document.getElementById('btn-stop'),
                 jumpInp: document.getElementById('inp-jump'), jumpBtn: document.getElementById('btn-jump'), totalWords: document.getElementById('hud-total'),
-                hudVoice: document.getElementById('sel-hud-voice'),
+                hudVoice: document.getElementById('sel-hud-voice'), btnFullscreen: document.getElementById('btn-fullscreen'),
                 sidebar: document.getElementById('sidebar'), btnToggleSidebar: document.getElementById('btn-toggle-sidebar'), btnCloseSidebar: document.getElementById('btn-close-sidebar'), sidebarContent: document.getElementById('sidebar-content')
             }
         };
@@ -255,12 +264,45 @@
             isPaused: false
         };
 
+        let zenIdleTimer = null;
+
         window.addEventListener('load', () => {
             initVoiceLoader();
             bindGlobalDragEvents();
             bindUIEvents();
             StorageManager.checkBookmark();
         });
+
+        // --- Keyboard Controls & Zen Mode ---
+        window.addEventListener('keydown', (e) => {
+            if(e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                if(STATE.activeEngine && !UI.layers.reader.classList.contains('hidden')) {
+                    togglePause();
+                }
+            }
+        });
+
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) startZenIdleTimer();
+            else { clearTimeout(zenIdleTimer); document.body.classList.remove('zen-idle'); }
+        });
+
+        document.addEventListener('mousemove', () => {
+            if (document.fullscreenElement) {
+                document.body.classList.remove('zen-idle');
+                startZenIdleTimer();
+            }
+        });
+
+        function startZenIdleTimer() {
+            clearTimeout(zenIdleTimer);
+            zenIdleTimer = setTimeout(() => {
+                if(document.fullscreenElement && STATE.activeEngine && !STATE.isPaused) {
+                    document.body.classList.add('zen-idle');
+                }
+            }, 2500);
+        }
 
         // --- File Routing ---
         function bindGlobalDragEvents() {
@@ -306,7 +348,7 @@
             UI.in.dropZone.innerHTML = "Drag & Drop Document Here (PDF, DOCX, EPUB, TXT)<br><span style='font-size:0.8rem; opacity:0.6;'>Or click to browse</span>";
         }
 
-        // --- Voice Loader (Syncs both menus) ---
+        // --- Voice Loader ---
         function initVoiceLoader() {
             const loadNative = () => {
                 let voices = window.speechSynthesis.getVoices();
@@ -339,26 +381,25 @@
             UI.out.stop.addEventListener('click', stopSequence);
             UI.out.bookmark.addEventListener('click', () => { StorageManager.saveBookmark(); stopSequence(); });
 
-            // Sidebar Toggles
+            UI.out.btnFullscreen.addEventListener('click', () => {
+                if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(err => console.log(err));
+                else document.exitFullscreen();
+            });
+
             UI.out.btnToggleSidebar.addEventListener('click', () => UI.out.sidebar.classList.add('open'));
             UI.out.btnCloseSidebar.addEventListener('click', () => UI.out.sidebar.classList.remove('open'));
 
-            // Jump Word Logic
             UI.out.jumpBtn.addEventListener('click', handleJumpInput);
             UI.out.jumpInp.addEventListener('keypress', (e) => { if(e.key === 'Enter') handleJumpInput(); });
 
-            // On-The-Fly Voice Switching
             UI.out.hudVoice.addEventListener('change', (e) => {
                 if(!STATE.activeEngine) return;
                 const vVal = e.target.value;
                 const isEdge = (vVal === 'EDGE_AI');
                 STATE.activeEngine.changeVoice(isEdge ? null : parseInt(vVal), isEdge);
                 
-                // If it's paused, user expects to hear the new voice when they click resume. 
-                // The cancel clears the buffer. Resume will automatically generate the new utterance.
                 if(STATE.isPaused) { window.speechSynthesis.cancel(); }
                 else {
-                    // If it's actively playing, force a pause/resume cycle to swap the voice seamlessly.
                     STATE.activeEngine.pause();
                     setTimeout(() => { window.speechSynthesis.cancel(); STATE.activeEngine.resume(); }, 50);
                 }
@@ -367,39 +408,39 @@
 
         function handleJumpInput() {
             if(!STATE.activeEngine) return;
-            let target = parseInt(UI.out.jumpInp.value) - 1; // Convert to 0-index
+            let target = parseInt(UI.out.jumpInp.value) - 1; 
             if(isNaN(target)) return;
             target = Math.max(0, Math.min(target, STATE.pipelineData.totalWords - 1));
             STATE.activeEngine.jumpTo(target);
         }
 
-        // --- Document Structure Parsing Pipeline ---
+        // --- Document Structure Parsing Pipeline (First 20 Words) ---
         class TextPipeline {
             static parse(rawText) {
                 const clauses = [];
                 const structure = [];
                 let globalIdx = 0;
 
-                // Pre-process: split by distinct blocks/paragraphs for heuristics
                 const blocks = rawText.split(/\n+/);
+                let nextSegmentThreshold = 0;
 
                 blocks.forEach(block => {
                     const cleanBlock = block.trim();
                     if (!cleanBlock) return;
 
-                    // Heuristics for Headings / Chapters
                     const isChapter = /^(chapter|section|part)\s+\d+/i.test(cleanBlock);
                     const isShortUpper = cleanBlock.length < 60 && cleanBlock === cleanBlock.toUpperCase() && cleanBlock.match(/[A-Z]/);
-                    const isNumberedHeading = /^\d+(\.\d+)*\s+[A-Z]/.test(cleanBlock) && cleanBlock.length < 80;
-
-                    if (isChapter || isShortUpper || isNumberedHeading) {
-                        const title = cleanBlock.length > 35 ? cleanBlock.substring(0, 35) + '...' : cleanBlock;
+                    
+                    // Generate structure point based on heuristics OR segment duration limits (~400 words)
+                    if (isChapter || isShortUpper || globalIdx === 0 || globalIdx >= nextSegmentThreshold) {
+                        const wordsInBlock = cleanBlock.split(/\s+/);
+                        const titleWords = wordsInBlock.slice(0, 20).join(' '); // Strict 20-word identifier
+                        const title = titleWords + (wordsInBlock.length > 20 ? '...' : '');
+                        
                         structure.push({ title, wordIdx: globalIdx });
-                    } else if (structure.length === 0 && globalIdx === 0) {
-                        structure.push({ title: "Beginning", wordIdx: 0 }); // Fallback top node
+                        nextSegmentThreshold = globalIdx + 400; 
                     }
 
-                    // Strict clause chunking
                     const rawClauses = cleanBlock.replace(/\s+/g, ' ').match(/[^.,!?;:]+[.,!?;:]?/g) || [cleanBlock];
                     
                     rawClauses.forEach(text => {
@@ -417,25 +458,41 @@
                     });
                 });
                 
-                // Polyfill structure if text lacked semantic headings
-                if (structure.length <= 1 && globalIdx > 500) {
-                    for(let i = 500; i < globalIdx; i += 500) structure.push({ title: `Segment near word ${i}`, wordIdx: i });
-                }
-
                 return { clauses, totalWords: globalIdx, structure };
             }
         }
 
+        // --- Scrolling Marquee Sidebar ---
         function buildSidebar() {
             UI.out.sidebarContent.innerHTML = '';
             STATE.pipelineData.structure.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'struct-item';
-                div.innerText = item.title;
+                
+                const textSpan = document.createElement('span');
+                textSpan.className = 'marquee-text';
+                textSpan.innerText = item.title;
+                div.appendChild(textSpan);
+                
+                // Smart hover scroll calculator
+                div.onmouseenter = () => {
+                    const visibleWidth = div.clientWidth - 40; // Subtracting padding
+                    if (textSpan.scrollWidth > visibleWidth) {
+                        const distance = textSpan.scrollWidth - visibleWidth;
+                        // Linear speed relative to scroll distance
+                        textSpan.style.transition = `transform ${distance * 0.015}s linear 0.2s`; 
+                        textSpan.style.transform = `translateX(-${distance}px)`;
+                    }
+                };
+                div.onmouseleave = () => {
+                    textSpan.style.transition = `transform 0.3s ease`;
+                    textSpan.style.transform = `translateX(0)`;
+                };
+
                 div.onclick = () => {
                     UI.out.jumpInp.value = item.wordIdx + 1;
                     handleJumpInput();
-                    UI.out.sidebar.classList.remove('open'); // Auto close on mobile/desktop
+                    UI.out.sidebar.classList.remove('open'); 
                 };
                 UI.out.sidebarContent.appendChild(div);
             });
@@ -445,10 +502,7 @@
             if (!wordObj) return;
             STATE.currentWordGlobalIndex = wordObj.globalIdx;
             
-            // Sync HUD Input (only if user isn't actively typing in it)
-            if(document.activeElement !== UI.out.jumpInp) {
-                UI.out.jumpInp.value = wordObj.globalIdx + 1;
-            }
+            if(document.activeElement !== UI.out.jumpInp) UI.out.jumpInp.value = wordObj.globalIdx + 1;
 
             const displayToken = wordObj.clean;
             if (!displayToken) return; 
@@ -472,7 +526,7 @@
             UI.out.right.innerText = displayToken.substring(idx + 1);
         }
 
-        // --- STRICT MUTEX ENGINE w/ JUMP & VOICE SWITCHING ---
+        // --- STRICT MUTEX ENGINE ---
         class StrictSyncEngine {
             constructor(pipelineData, voiceIndex, rate, isEdgePlaceholder = false) {
                 this.clauses = pipelineData.clauses;
@@ -487,7 +541,7 @@
 
             start(startWordIdx = 0) {
                 this.isActive = true;
-                this.jumpTo(startWordIdx, false); // start handles initial routing
+                this.jumpTo(startWordIdx, false); 
             }
 
             jumpTo(globalWordIdx, requireRestart = true) {
@@ -495,19 +549,17 @@
                     this.pause();
                     window.speechSynthesis.cancel();
                     if(this.timer) clearInterval(this.timer);
-                    this.engineSupportsBoundaries = false; // Reset mutex to prevent ghost callbacks
+                    this.engineSupportsBoundaries = false; 
                 }
 
                 this.currentClauseIdx = Math.max(0, this.clauses.findIndex(c => c.words.some(w => w.globalIdx >= globalWordIdx)));
                 
                 if(STATE.isPaused) {
-                    // Just render the target word visually to confirm the jump worked, wait for resume
                     if(this.clauses[this.currentClauseIdx]) {
                         const targetWord = this.clauses[this.currentClauseIdx].words.find(w => w.globalIdx >= globalWordIdx) || this.clauses[this.currentClauseIdx].words[0];
                         renderWord(targetWord);
                     }
                 } else {
-                    // Play immediately but pass the specific word offset so we don't re-read the start of the clause visually
                     this.playClause(globalWordIdx);
                 }
             }
@@ -526,7 +578,6 @@
                 if (!this.isEdge && STATE.voices[this.voiceIndex]) utt.voice = STATE.voices[this.voiceIndex];
                 utt.rate = this.rate;
 
-                // Determine visual start offset if jumping mid-clause
                 let currentVisualIdx = 0;
                 if(startAtGlobalIdx !== null) {
                     currentVisualIdx = clause.words.findIndex(w => w.globalIdx >= startAtGlobalIdx);
@@ -574,15 +625,11 @@
                 window.speechSynthesis.speak(utt);
             }
 
-            pause() { 
-                window.speechSynthesis.pause(); 
-            }
-            
+            pause() { window.speechSynthesis.pause(); }
             resume() { 
                 window.speechSynthesis.resume(); 
                 if(!window.speechSynthesis.speaking) this.playClause(); 
             }
-            
             stop() { 
                 this.isActive = false; 
                 if(this.timer) clearInterval(this.timer);
@@ -629,7 +676,7 @@
             if(STATE.pipelineData.totalWords === 0) return alert("No words extracted.");
 
             UI.out.totalWords.innerText = STATE.pipelineData.totalWords;
-            buildSidebar(); // Generate the Structure UI
+            buildSidebar(); 
 
             UI.layers.input.classList.add('hidden');
             UI.layers.reader.classList.remove('hidden');
@@ -639,7 +686,7 @@
 
             const rate = parseFloat(UI.in.rate.value);
             const vVal = UI.in.voice.value;
-            UI.out.hudVoice.value = vVal; // Sync HUD dropdown
+            UI.out.hudVoice.value = vVal; 
 
             window.speechSynthesis.cancel(); 
 
@@ -652,6 +699,8 @@
             if (STATE.activeEngine) STATE.activeEngine.stop();
             STATE.activeEngine = null; STATE.isPaused = false;
             
+            if (document.fullscreenElement) document.exitFullscreen();
+
             UI.layers.reader.classList.add('hidden');
             UI.layers.input.classList.remove('hidden');
             UI.out.sidebar.classList.remove('open');
