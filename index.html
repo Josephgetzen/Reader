@@ -83,17 +83,24 @@
         }
         button.primary:hover { background: var(--accent-hover); }
 
+        #bookmark-alert {
+            display: none; background: rgba(59,130,246,0.1); border: 1px solid var(--accent-color);
+            padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;
+        }
+
         /* --- Original Text Context Underlay --- */
         #context-layer {
             position: absolute; right: 0; top: 0; width: 45%; height: 100%;
-            padding: 10vh 5%; overflow: hidden; pointer-events: none;
+            padding: 10vh 5%; overflow-y: auto; overflow-x: hidden; pointer-events: none;
             white-space: pre-wrap; font-family: var(--font-read); font-size: 1.1rem; line-height: 2.0;
-            color: rgba(255, 255, 255, var(--context-opacity, 0.15));
+            color: rgba(255, 255, 255, var(--context-opacity, 0.20));
             z-index: 1; text-align: left; display: none;
+            scrollbar-width: none; /* Firefox */
         }
+        #context-layer::-webkit-scrollbar { display: none; /* Chrome/Safari */ }
         #context-layer.active { display: block; }
-        #context-layer span { transition: color 0.1s; }
-        #context-layer span.active-word { color: var(--accent-color); font-weight: 800; text-shadow: 0 0 10px rgba(59,130,246,0.8); }
+        #context-layer span { transition: color 0.1s, font-weight 0.1s; }
+        #context-layer span.active-word { color: var(--accent-color); font-weight: 800; text-shadow: 0 0 10px rgba(59,130,246,0.6); }
 
         /* --- Structure Sidebar --- */
         #sidebar {
@@ -151,7 +158,7 @@
         
         button.hud-btn {
             background: rgba(0,0,0,0.5); border: 1px solid #444; color: #aaa; padding: 12px 30px;
-            border-radius: 30px; cursor: pointer; text-transform: uppercase; font-weight: 600; letter-spacing: 1px; backdrop-filter: blur(5px);
+            border-radius: 30px; cursor: pointer; text-transform: uppercase; font-weight: 600; letter-spacing: 1px; backdrop-filter: blur(5px); transition: 0.2s;
         }
         button.hud-btn:hover { border-color: white; color: white; }
         button.hud-btn.active { border-color: var(--accent-color); color: var(--accent-color); }
@@ -251,7 +258,7 @@
     <script>
         /**
          * ReadSync | Enterprise Architecture
-         * Added Features: Original Format Retention, Hyphen Stripping Pipeline, Centered Underlay, Dynamic Arrow Skips.
+         * Added Features: Context Underlay (V-Sync Scrolling Fix), Dual-Index Boundary Lexer.
          */
 
         if(window.pdfjsLib) window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
@@ -274,7 +281,7 @@
         };
 
         const STATE = {
-            rawText: '', // Unaltered original text storage
+            rawText: '', 
             voices: [],
             activeEngine: null,
             pipelineData: null,
@@ -298,13 +305,11 @@
         window.addEventListener('keydown', (e) => {
             if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
-            // Spacebar Play/Pause
             if(e.code === 'Space') {
                 e.preventDefault();
                 if(STATE.activeEngine && !UI.layers.reader.classList.contains('hidden')) togglePause();
             }
 
-            // Arrow Skipping Logic (Scale 5 to 100)
             if((e.code === 'ArrowRight' || e.code === 'ArrowLeft') && STATE.activeEngine && !UI.layers.reader.classList.contains('hidden')) {
                 e.preventDefault();
                 const now = Date.now();
@@ -318,7 +323,6 @@
                 let targetIdx = STATE.currentWordGlobalIndex + (wordsToSkip * dir);
                 targetIdx = Math.max(0, Math.min(targetIdx, STATE.pipelineData.totalWords - 1));
 
-                // Toast Feedback
                 UI.out.skipToast.innerText = `${dir === 1 ? '+' : '-'}${wordsToSkip} Words`;
                 UI.out.skipToast.classList.add('show');
                 clearTimeout(UI.out.skipToast.timer);
@@ -427,13 +431,18 @@
 
             UI.out.btnToggleContext.addEventListener('click', () => {
                 UI.out.contextLayer.classList.toggle('active');
+                UI.out.btnToggleContext.classList.toggle('active');
+                
+                // Align on toggle
                 if(UI.out.contextLayer.classList.contains('active') && STATE.lastContextSpan) {
-                    STATE.lastContextSpan.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'center' });
+                    const container = UI.out.contextLayer;
+                    const spanTop = STATE.lastContextSpan.offsetTop;
+                    const containerHalf = container.clientHeight / 2;
+                    const spanHalf = STATE.lastContextSpan.clientHeight / 2;
+                    container.scrollTo({ top: spanTop - containerHalf + spanHalf, behavior: 'auto' });
                 }
             });
-            UI.out.rngOpacity.addEventListener('input', (e) => {
-                document.documentElement.style.setProperty('--context-opacity', e.target.value);
-            });
+            UI.out.rngOpacity.addEventListener('input', (e) => { document.documentElement.style.setProperty('--context-opacity', e.target.value); });
 
             UI.out.hudVoice.addEventListener('change', (e) => {
                 if(!STATE.activeEngine) return;
@@ -454,14 +463,14 @@
             STATE.activeEngine.jumpTo(target);
         }
 
-        // --- Text Pipeline (Hyphen Stripping & Exact Char Mapping) ---
+        // --- Text Pipeline (Dual-Index Lexer) ---
         class TextPipeline {
             static parse(rawText) {
                 const clauses = [];
                 const structure = [];
                 let globalIdx = 0;
                 
-                // Matches words while splitting by hyphens and em-dashes
+                // Excludes space, hyphen, em-dash
                 const wordRegex = /[^\s\-—]+/g; 
                 let match;
                 let currentClauseWords = [];
@@ -478,11 +487,9 @@
                     const textSinceLast = rawText.substring(lastWordEnd, charStart);
                     const prevWordRaw = currentClauseWords.length > 0 ? currentClauseWords[currentClauseWords.length - 1].raw : '';
 
-                    // Clause boundaries (Sentences)
                     if (currentClauseWords.length > 0 && (/[.,!?;:]$/.test(prevWordRaw) || /[\n\r]/.test(textSinceLast))) {
                         const clauseText = rawText.substring(currentClauseStart, charStart);
                         
-                        // Structure Parsing on Clause
                         const cleanClause = clauseText.trim();
                         if (cleanClause) {
                             const isChapter = /^(chapter|section|part)\s+\d+/i.test(cleanClause);
@@ -496,9 +503,15 @@
                             }
                         }
 
+                        // Set secondary index specifically for the Speech Synthesis Event hook
+                        currentClauseWords.forEach(w => {
+                            w.clauseCharStart = w.charStart - currentClauseStart;
+                            w.clauseCharEnd = w.charEnd - currentClauseStart;
+                        });
+
                         clauses.push({ text: clauseText, words: currentClauseWords });
                         currentClauseWords = [];
-                        currentClauseStart = charStart;
+                        currentClauseStart = charStart; // Advance the clause base pointer
                     }
 
                     if (cleanWord.length > 0) {
@@ -508,14 +521,18 @@
                 }
                 
                 if (currentClauseWords.length > 0) {
-                    clauses.push({ text: rawText.substring(currentClauseStart), words: currentClauseWords });
+                    const clauseText = rawText.substring(currentClauseStart);
+                    currentClauseWords.forEach(w => {
+                        w.clauseCharStart = w.charStart - currentClauseStart;
+                        w.clauseCharEnd = w.charEnd - currentClauseStart;
+                    });
+                    clauses.push({ text: clauseText, words: currentClauseWords });
                 }
 
                 return { clauses, totalWords: globalIdx, structure };
             }
         }
 
-        // --- Render UI Elements ---
         function escapeHTML(str) {
             return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag]));
         }
@@ -526,9 +543,7 @@
             const allWords = pipelineData.clauses.flatMap(c => c.words);
             
             for (let w of allWords) {
-                // Insert un-altered whitespace/hyphens between words
                 html += escapeHTML(rawText.substring(lastIdx, w.charStart));
-                // Wrap exactly the parsed word
                 html += `<span id="uw-${w.globalIdx}">${escapeHTML(rawText.substring(w.charStart, w.charEnd))}</span>`;
                 lastIdx = w.charEnd;
             }
@@ -571,17 +586,22 @@
             
             if(document.activeElement !== UI.out.jumpInp) UI.out.jumpInp.value = wordObj.globalIdx + 1;
 
-            // Update Context Underlay
+            // Safe Manual V-Sync Scrolling for the Underlay
             const contextSpan = document.getElementById(`uw-${wordObj.globalIdx}`);
             if(contextSpan) {
                 if(STATE.lastContextSpan) STATE.lastContextSpan.classList.remove('active-word');
                 contextSpan.classList.add('active-word');
                 STATE.lastContextSpan = contextSpan;
-                // Scroll synchronously, keeping it perfectly centered horizontally and vertically
-                contextSpan.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'center' });
+
+                if (UI.out.contextLayer.classList.contains('active')) {
+                    const container = UI.out.contextLayer;
+                    const spanTop = contextSpan.offsetTop;
+                    const containerHalf = container.clientHeight / 2;
+                    const spanHalf = contextSpan.clientHeight / 2;
+                    container.scrollTo({ top: spanTop - containerHalf + spanHalf, behavior: 'smooth' });
+                }
             }
 
-            // RSVP Stage Update
             const displayToken = wordObj.clean;
             if (!displayToken) return; 
 
@@ -676,7 +696,8 @@
                             this.engineSupportsBoundaries = true;
                             if(this.timer) clearInterval(this.timer);
                         }
-                        const exactIdx = clause.words.findIndex(w => e.charIndex >= w.charStart && e.charIndex < w.charEnd);
+                        // Fault-tolerant clause offset mapping
+                        const exactIdx = clause.words.findIndex(w => e.charIndex >= (w.clauseCharStart - 2) && e.charIndex <= (w.clauseCharEnd + 1));
                         if (exactIdx > currentVisualIdx) {
                             currentVisualIdx = exactIdx;
                             renderWord(clause.words[currentVisualIdx]);
@@ -711,7 +732,7 @@
         }
 
         function startSequence(startWordIdx = 0) {
-            STATE.rawText = UI.in.text.value; // Store absolute original text unaltered
+            STATE.rawText = UI.in.text.value; 
             if (!STATE.rawText.trim()) return alert("No text input found.");
 
             STATE.pipelineData = TextPipeline.parse(STATE.rawText);
@@ -747,6 +768,7 @@
             UI.layers.input.classList.remove('hidden');
             UI.out.sidebar.classList.remove('open');
             UI.out.contextLayer.classList.remove('active');
+            UI.out.btnToggleContext.classList.remove('active');
             UI.out.left.innerText = ''; UI.out.pivot.innerText = ''; UI.out.right.innerText = '';
         }
     </script>
