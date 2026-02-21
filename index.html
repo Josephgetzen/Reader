@@ -44,13 +44,13 @@
         /* --- Zen Fullscreen Mode --- */
         body.zen-idle { cursor: none; }
         body.zen-idle .hud { opacity: 0; pointer-events: none; }
-        body.zen-idle #sidebar { left: -320px; } /* Auto hide sidebar in zen mode */
+        body.zen-idle #sidebar { left: -320px; }
 
         /* --- UI Card --- */
         .card {
             width: 90%; max-width: 800px; background: var(--ui-card); border: 1px solid var(--border);
             border-radius: 12px; padding: 35px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
-            max-height: 95vh; overflow-y: auto;
+            max-height: 95vh; overflow-y: auto; z-index: 50;
         }
 
         h1 { font-weight: 300; text-align: center; letter-spacing: 4px; margin-bottom: 25px; font-size: 2.2rem; }
@@ -83,10 +83,17 @@
         }
         button.primary:hover { background: var(--accent-hover); }
 
-        #bookmark-alert {
-            display: none; background: rgba(59,130,246,0.1); border: 1px solid var(--accent-color);
-            padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;
+        /* --- Original Text Context Underlay --- */
+        #context-layer {
+            position: absolute; right: 0; top: 0; width: 45%; height: 100%;
+            padding: 10vh 5%; overflow: hidden; pointer-events: none;
+            white-space: pre-wrap; font-family: var(--font-read); font-size: 1.1rem; line-height: 2.0;
+            color: rgba(255, 255, 255, var(--context-opacity, 0.15));
+            z-index: 1; text-align: left; display: none;
         }
+        #context-layer.active { display: block; }
+        #context-layer span { transition: color 0.1s; }
+        #context-layer span.active-word { color: var(--accent-color); font-weight: 800; text-shadow: 0 0 10px rgba(59,130,246,0.8); }
 
         /* --- Structure Sidebar --- */
         #sidebar {
@@ -116,9 +123,9 @@
         /* --- Reader Stage --- */
         .rsvp-stage {
             display: grid; grid-template-columns: 1fr auto 1fr; align-items: baseline;
-            width: 100%; max-width: 90vw; user-select: none;
+            width: 100%; max-width: 90vw; user-select: none; z-index: 10;
         }
-        .word-chunk { font-family: var(--font-read); font-size: 6rem; white-space: pre; line-height: 1; }
+        .word-chunk { font-family: var(--font-read); font-size: 6rem; white-space: pre; line-height: 1; text-shadow: 0 4px 20px rgba(0,0,0,0.8); }
         .c-left { text-align: right; color: var(--text-muted); justify-self: end; overflow: hidden; max-width: 45vw; }
         .c-right { text-align: left; color: var(--text-muted); justify-self: start; overflow: hidden; max-width: 45vw; }
         .c-pivot { color: var(--pivot-color); font-weight: 700; text-align: center; position: relative; z-index: 10; }
@@ -130,25 +137,32 @@
         .c-pivot:not(.is-num)::after { bottom: -35px; }
         .c-pivot.is-num { color: #fff; font-weight: 400; }
 
-        /* --- HUD --- */
-        .hud { position: absolute; bottom: 30px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 15px; transition: opacity 0.5s ease; }
-        
-        .hud-top-row { display: flex; align-items: center; gap: 15px; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 30px; border: 1px solid var(--border); backdrop-filter: blur(5px); }
+        /* --- HUD & Skip Toast --- */
+        .hud { position: absolute; bottom: 30px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 15px; transition: opacity 0.5s ease; z-index: 20; }
+        .hud-top-row { display: flex; align-items: center; gap: 15px; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 30px; border: 1px solid var(--border); backdrop-filter: blur(5px); flex-wrap: wrap; justify-content: center; }
         
         .jump-control { display: flex; align-items: center; gap: 8px; font-family: var(--font-read); font-size: 0.9rem; color: #888; }
         .jump-control input { width: 70px; padding: 6px; text-align: center; font-family: var(--font-read); border-radius: 4px; background: #111; font-size: 0.9rem; }
         .jump-control button { padding: 6px 12px; font-size: 0.8rem; text-transform: uppercase; font-weight: bold; background: #222; border-radius: 4px; cursor: pointer; }
         .jump-control button:hover { background: var(--accent-color); color: white; border-color: var(--accent-color); }
         
-        .hud-select { padding: 6px 10px; font-size: 0.85rem; border-radius: 6px; background: #111; max-width: 200px; }
-
+        .hud-select { padding: 6px 10px; font-size: 0.85rem; border-radius: 6px; background: #111; max-width: 150px; }
         .hud-controls { display: flex; gap: 15px; }
+        
         button.hud-btn {
             background: rgba(0,0,0,0.5); border: 1px solid #444; color: #aaa; padding: 12px 30px;
             border-radius: 30px; cursor: pointer; text-transform: uppercase; font-weight: 600; letter-spacing: 1px; backdrop-filter: blur(5px);
         }
         button.hud-btn:hover { border-color: white; color: white; }
         button.hud-btn.active { border-color: var(--accent-color); color: var(--accent-color); }
+
+        #skip-toast {
+            position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%) scale(0.8);
+            font-size: 3rem; font-weight: 800; color: var(--accent-color); opacity: 0; pointer-events: none;
+            text-shadow: 0 10px 30px rgba(0,0,0,0.8); transition: all 0.15s ease-out; z-index: 30;
+        }
+        #skip-toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+
     </style>
 </head>
 <body>
@@ -158,11 +172,6 @@
         <div class="card" id="main-card">
             <h1>Read<span>Sync</span></h1>
             
-            <div id="bookmark-alert">
-                <p style="color:white; margin-bottom:10px; font-weight:600;">Saved Session Found</p>
-                <button id="btn-resume-bookmark" style="width:100%; padding:10px; background:var(--accent-color); color:white; border:none; border-radius:6px; cursor:pointer;">Resume Where You Left Off</button>
-            </div>
-
             <div class="drop-zone" id="drop-zone">
                 Drag & Drop Document Here (PDF, DOCX, EPUB, TXT)
                 <br><span style="font-size:0.8rem; opacity:0.6;">Or click to browse</span>
@@ -193,15 +202,18 @@
     <!-- RSVP READER INTERFACE -->
     <div id="layer-reader" class="layer hidden">
         
+        <div id="skip-toast">+5 Words</div>
+        
+        <!-- Original Text Context Layer -->
+        <div id="context-layer"></div>
+
         <!-- Collapsible Structure Sidebar -->
         <div id="sidebar">
             <div class="sidebar-header">
                 <h3>Document Structure</h3>
                 <button id="btn-close-sidebar" class="close-btn">&times;</button>
             </div>
-            <div class="sidebar-content" id="sidebar-content">
-                <!-- Populated dynamically -->
-            </div>
+            <div class="sidebar-content" id="sidebar-content"></div>
         </div>
 
         <div class="rsvp-stage">
@@ -211,21 +223,26 @@
         </div>
         
         <div class="hud">
-            <!-- Navigation & Voice Control Row -->
+            <!-- Navigation & Context Controls -->
             <div class="hud-top-row">
                 <button id="btn-toggle-sidebar" class="hud-btn" style="padding:6px 12px; font-size:1.2rem;" title="Contents">☰</button>
                 <div class="jump-control">
                     Word <input type="number" id="inp-jump" min="1" value="1"> / <span id="hud-total">0</span>
                     <button id="btn-jump">Go</button>
                 </div>
+                
+                <!-- Underlay Toggles -->
+                <div style="display:flex; align-items:center; gap:8px; border-left: 1px solid #333; padding-left:15px; margin-left:5px;">
+                    <button id="btn-toggle-context" class="hud-btn" style="padding:6px 10px; font-size:0.8rem;">👁 Context</button>
+                    <input type="range" id="rng-opacity" min="0.05" max="0.8" step="0.05" value="0.2" title="Underlay Opacity" style="width: 80px;">
+                </div>
+
                 <select id="sel-hud-voice" class="hud-select" title="Change Voice On-the-Fly"></select>
                 <button id="btn-fullscreen" class="hud-btn" style="padding:6px 12px; font-size:1.2rem;" title="Zen Fullscreen">⛶</button>
             </div>
 
-            <!-- Standard Controls -->
             <div class="hud-controls">
                 <button id="btn-pause" class="hud-btn">Pause</button>
-                <button id="btn-bookmark" class="hud-btn">Bookmark & Exit</button>
                 <button id="btn-stop" class="hud-btn" style="border-color:var(--pivot-color); color:var(--pivot-color);">Stop</button>
             </div>
         </div>
@@ -234,7 +251,7 @@
     <script>
         /**
          * ReadSync | Enterprise Architecture
-         * Added Features: Zen Fullscreen Mode, Spacebar Mapping, Marquee 20-Word Sidebar Titles
+         * Added Features: Original Format Retention, Hyphen Stripping Pipeline, Centered Underlay, Dynamic Arrow Skips.
          */
 
         if(window.pdfjsLib) window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
@@ -244,42 +261,70 @@
             in: {
                 dropZone: document.getElementById('drop-zone'), fileInput: document.getElementById('file-upload'),
                 voice: document.getElementById('sel-voice'), rate: document.getElementById('rng-rate'), rateDisp: document.getElementById('disp-rate'),
-                text: document.getElementById('txt-input'), count: document.getElementById('cnt-char'), start: document.getElementById('btn-start'),
-                bookmarkAlert: document.getElementById('bookmark-alert'), btnResumeBookmark: document.getElementById('btn-resume-bookmark')
+                text: document.getElementById('txt-input'), count: document.getElementById('cnt-char'), start: document.getElementById('btn-start')
             },
             out: {
                 left: document.getElementById('r-left'), pivot: document.getElementById('r-pivot'), right: document.getElementById('r-right'),
-                pause: document.getElementById('btn-pause'), bookmark: document.getElementById('btn-bookmark'), stop: document.getElementById('btn-stop'),
+                pause: document.getElementById('btn-pause'), stop: document.getElementById('btn-stop'),
                 jumpInp: document.getElementById('inp-jump'), jumpBtn: document.getElementById('btn-jump'), totalWords: document.getElementById('hud-total'),
                 hudVoice: document.getElementById('sel-hud-voice'), btnFullscreen: document.getElementById('btn-fullscreen'),
-                sidebar: document.getElementById('sidebar'), btnToggleSidebar: document.getElementById('btn-toggle-sidebar'), btnCloseSidebar: document.getElementById('btn-close-sidebar'), sidebarContent: document.getElementById('sidebar-content')
+                sidebar: document.getElementById('sidebar'), btnToggleSidebar: document.getElementById('btn-toggle-sidebar'), btnCloseSidebar: document.getElementById('btn-close-sidebar'), sidebarContent: document.getElementById('sidebar-content'),
+                contextLayer: document.getElementById('context-layer'), btnToggleContext: document.getElementById('btn-toggle-context'), rngOpacity: document.getElementById('rng-opacity'), skipToast: document.getElementById('skip-toast')
             }
         };
 
         const STATE = {
+            rawText: '', // Unaltered original text storage
             voices: [],
             activeEngine: null,
             pipelineData: null,
             currentWordGlobalIndex: 0,
-            isPaused: false
+            isPaused: false,
+            lastContextSpan: null
         };
 
         let zenIdleTimer = null;
+        let skipStreak = 0;
+        let lastSkipTime = 0;
+        let skipDirection = 0;
 
         window.addEventListener('load', () => {
             initVoiceLoader();
             bindGlobalDragEvents();
             bindUIEvents();
-            StorageManager.checkBookmark();
         });
 
         // --- Keyboard Controls & Zen Mode ---
         window.addEventListener('keydown', (e) => {
-            if(e.code === 'Space' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+            if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            // Spacebar Play/Pause
+            if(e.code === 'Space') {
                 e.preventDefault();
-                if(STATE.activeEngine && !UI.layers.reader.classList.contains('hidden')) {
-                    togglePause();
-                }
+                if(STATE.activeEngine && !UI.layers.reader.classList.contains('hidden')) togglePause();
+            }
+
+            // Arrow Skipping Logic (Scale 5 to 100)
+            if((e.code === 'ArrowRight' || e.code === 'ArrowLeft') && STATE.activeEngine && !UI.layers.reader.classList.contains('hidden')) {
+                e.preventDefault();
+                const now = Date.now();
+                const dir = e.code === 'ArrowRight' ? 1 : -1;
+
+                if (now - lastSkipTime < 600 && skipDirection === dir) skipStreak++;
+                else { skipStreak = 1; skipDirection = dir; }
+                lastSkipTime = now;
+
+                const wordsToSkip = Math.min(5 * skipStreak, 100);
+                let targetIdx = STATE.currentWordGlobalIndex + (wordsToSkip * dir);
+                targetIdx = Math.max(0, Math.min(targetIdx, STATE.pipelineData.totalWords - 1));
+
+                // Toast Feedback
+                UI.out.skipToast.innerText = `${dir === 1 ? '+' : '-'}${wordsToSkip} Words`;
+                UI.out.skipToast.classList.add('show');
+                clearTimeout(UI.out.skipToast.timer);
+                UI.out.skipToast.timer = setTimeout(() => UI.out.skipToast.classList.remove('show'), 600);
+
+                STATE.activeEngine.jumpTo(targetIdx, true);
             }
         });
 
@@ -287,20 +332,13 @@
             if (document.fullscreenElement) startZenIdleTimer();
             else { clearTimeout(zenIdleTimer); document.body.classList.remove('zen-idle'); }
         });
-
         document.addEventListener('mousemove', () => {
-            if (document.fullscreenElement) {
-                document.body.classList.remove('zen-idle');
-                startZenIdleTimer();
-            }
+            if (document.fullscreenElement) { document.body.classList.remove('zen-idle'); startZenIdleTimer(); }
         });
-
         function startZenIdleTimer() {
             clearTimeout(zenIdleTimer);
             zenIdleTimer = setTimeout(() => {
-                if(document.fullscreenElement && STATE.activeEngine && !STATE.isPaused) {
-                    document.body.classList.add('zen-idle');
-                }
+                if(document.fullscreenElement && STATE.activeEngine && !STATE.isPaused) document.body.classList.add('zen-idle');
             }, 2500);
         }
 
@@ -354,13 +392,10 @@
                 let voices = window.speechSynthesis.getVoices();
                 if(voices.length === 0) return; 
                 STATE.voices = voices.sort((a,b) => (b.name.includes('Google')||b.name.includes('Natural')) - (a.name.includes('Google')||a.name.includes('Natural')));
-                
                 const buildOptions = () => {
                     let html = '<optgroup label="Edge Pipeline"><option value="EDGE_AI">Edge AI (Local LLM)</option></optgroup>';
                     html += '<optgroup label="Native System Voices">';
-                    STATE.voices.forEach((v, i) => {
-                        html += `<option value="${i}" ${i===0?'selected':''}>${(v.name.includes('Google') || v.name.includes('Natural')) ? '★ ' : ''}${v.name}</option>`;
-                    });
+                    STATE.voices.forEach((v, i) => { html += `<option value="${i}" ${i===0?'selected':''}>${(v.name.includes('Google') || v.name.includes('Natural')) ? '★ ' : ''}${v.name}</option>`; });
                     html += '</optgroup>';
                     return html;
                 };
@@ -375,11 +410,9 @@
             UI.in.rate.addEventListener('input', e => UI.in.rateDisp.innerText = parseFloat(e.target.value).toFixed(1));
             UI.in.text.addEventListener('input', e => UI.in.count.innerText = e.target.value.length);
             UI.in.start.addEventListener('click', () => startSequence(0));
-            UI.in.btnResumeBookmark.addEventListener('click', () => StorageManager.loadBookmark());
 
             UI.out.pause.addEventListener('click', togglePause);
             UI.out.stop.addEventListener('click', stopSequence);
-            UI.out.bookmark.addEventListener('click', () => { StorageManager.saveBookmark(); stopSequence(); });
 
             UI.out.btnFullscreen.addEventListener('click', () => {
                 if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(err => console.log(err));
@@ -392,17 +425,24 @@
             UI.out.jumpBtn.addEventListener('click', handleJumpInput);
             UI.out.jumpInp.addEventListener('keypress', (e) => { if(e.key === 'Enter') handleJumpInput(); });
 
+            UI.out.btnToggleContext.addEventListener('click', () => {
+                UI.out.contextLayer.classList.toggle('active');
+                if(UI.out.contextLayer.classList.contains('active') && STATE.lastContextSpan) {
+                    STATE.lastContextSpan.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'center' });
+                }
+            });
+            UI.out.rngOpacity.addEventListener('input', (e) => {
+                document.documentElement.style.setProperty('--context-opacity', e.target.value);
+            });
+
             UI.out.hudVoice.addEventListener('change', (e) => {
                 if(!STATE.activeEngine) return;
                 const vVal = e.target.value;
                 const isEdge = (vVal === 'EDGE_AI');
                 STATE.activeEngine.changeVoice(isEdge ? null : parseInt(vVal), isEdge);
                 
-                if(STATE.isPaused) { window.speechSynthesis.cancel(); }
-                else {
-                    STATE.activeEngine.pause();
-                    setTimeout(() => { window.speechSynthesis.cancel(); STATE.activeEngine.resume(); }, 50);
-                }
+                if(STATE.isPaused) window.speechSynthesis.cancel();
+                else { STATE.activeEngine.pause(); setTimeout(() => { window.speechSynthesis.cancel(); STATE.activeEngine.resume(); }, 50); }
             });
         }
 
@@ -414,55 +454,88 @@
             STATE.activeEngine.jumpTo(target);
         }
 
-        // --- Document Structure Parsing Pipeline (First 20 Words) ---
+        // --- Text Pipeline (Hyphen Stripping & Exact Char Mapping) ---
         class TextPipeline {
             static parse(rawText) {
                 const clauses = [];
                 const structure = [];
                 let globalIdx = 0;
-
-                const blocks = rawText.split(/\n+/);
+                
+                // Matches words while splitting by hyphens and em-dashes
+                const wordRegex = /[^\s\-—]+/g; 
+                let match;
+                let currentClauseWords = [];
+                let currentClauseStart = 0;
+                let lastWordEnd = 0;
                 let nextSegmentThreshold = 0;
 
-                blocks.forEach(block => {
-                    const cleanBlock = block.trim();
-                    if (!cleanBlock) return;
+                while ((match = wordRegex.exec(rawText)) !== null) {
+                    const rawWord = match[0];
+                    const cleanWord = rawWord.replace(/[.,;:"!?)(\]\[}]/g, '');
+                    const charStart = match.index;
+                    const charEnd = charStart + rawWord.length;
 
-                    const isChapter = /^(chapter|section|part)\s+\d+/i.test(cleanBlock);
-                    const isShortUpper = cleanBlock.length < 60 && cleanBlock === cleanBlock.toUpperCase() && cleanBlock.match(/[A-Z]/);
-                    
-                    // Generate structure point based on heuristics OR segment duration limits (~400 words)
-                    if (isChapter || isShortUpper || globalIdx === 0 || globalIdx >= nextSegmentThreshold) {
-                        const wordsInBlock = cleanBlock.split(/\s+/);
-                        const titleWords = wordsInBlock.slice(0, 20).join(' '); // Strict 20-word identifier
-                        const title = titleWords + (wordsInBlock.length > 20 ? '...' : '');
+                    const textSinceLast = rawText.substring(lastWordEnd, charStart);
+                    const prevWordRaw = currentClauseWords.length > 0 ? currentClauseWords[currentClauseWords.length - 1].raw : '';
+
+                    // Clause boundaries (Sentences)
+                    if (currentClauseWords.length > 0 && (/[.,!?;:]$/.test(prevWordRaw) || /[\n\r]/.test(textSinceLast))) {
+                        const clauseText = rawText.substring(currentClauseStart, charStart);
                         
-                        structure.push({ title, wordIdx: globalIdx });
-                        nextSegmentThreshold = globalIdx + 400; 
+                        // Structure Parsing on Clause
+                        const cleanClause = clauseText.trim();
+                        if (cleanClause) {
+                            const isChapter = /^(chapter|section|part)\s+\d+/i.test(cleanClause);
+                            const isShortUpper = cleanClause.length < 60 && cleanClause === cleanClause.toUpperCase() && /[A-Z]/.test(cleanClause);
+                            const firstWordIdx = currentClauseWords[0].globalIdx;
+
+                            if (isChapter || isShortUpper || firstWordIdx === 0 || firstWordIdx >= nextSegmentThreshold) {
+                                const titleWords = currentClauseWords.slice(0, 20).map(w => w.raw).join(' ');
+                                structure.push({ title: titleWords + (currentClauseWords.length > 20 ? '...' : ''), wordIdx: firstWordIdx });
+                                nextSegmentThreshold = firstWordIdx + 400; 
+                            }
+                        }
+
+                        clauses.push({ text: clauseText, words: currentClauseWords });
+                        currentClauseWords = [];
+                        currentClauseStart = charStart;
                     }
 
-                    const rawClauses = cleanBlock.replace(/\s+/g, ' ').match(/[^.,!?;:]+[.,!?;:]?/g) || [cleanBlock];
-                    
-                    rawClauses.forEach(text => {
-                        text = text.trim(); if(!text) return;
-                        const words = [];
-                        const wordRegex = /\S+/g;
-                        let match;
-                        while ((match = wordRegex.exec(text)) !== null) {
-                            words.push({
-                                raw: match[0], clean: match[0].replace(/[.,;:"!?)(\]\[}]/g, ''),
-                                charStart: match.index, charEnd: match.index + match[0].length, globalIdx: globalIdx++
-                            });
-                        }
-                        if(words.length) clauses.push({ text, words });
-                    });
-                });
+                    if (cleanWord.length > 0) {
+                        currentClauseWords.push({ raw: rawWord, clean: cleanWord, charStart, charEnd, globalIdx: globalIdx++ });
+                    }
+                    lastWordEnd = charEnd;
+                }
                 
+                if (currentClauseWords.length > 0) {
+                    clauses.push({ text: rawText.substring(currentClauseStart), words: currentClauseWords });
+                }
+
                 return { clauses, totalWords: globalIdx, structure };
             }
         }
 
-        // --- Scrolling Marquee Sidebar ---
+        // --- Render UI Elements ---
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag]));
+        }
+
+        function buildContextLayer(rawText, pipelineData) {
+            let html = '';
+            let lastIdx = 0;
+            const allWords = pipelineData.clauses.flatMap(c => c.words);
+            
+            for (let w of allWords) {
+                // Insert un-altered whitespace/hyphens between words
+                html += escapeHTML(rawText.substring(lastIdx, w.charStart));
+                // Wrap exactly the parsed word
+                html += `<span id="uw-${w.globalIdx}">${escapeHTML(rawText.substring(w.charStart, w.charEnd))}</span>`;
+                lastIdx = w.charEnd;
+            }
+            html += escapeHTML(rawText.substring(lastIdx));
+            UI.out.contextLayer.innerHTML = html;
+        }
+
         function buildSidebar() {
             UI.out.sidebarContent.innerHTML = '';
             STATE.pipelineData.structure.forEach(item => {
@@ -474,12 +547,10 @@
                 textSpan.innerText = item.title;
                 div.appendChild(textSpan);
                 
-                // Smart hover scroll calculator
                 div.onmouseenter = () => {
-                    const visibleWidth = div.clientWidth - 40; // Subtracting padding
+                    const visibleWidth = div.clientWidth - 40; 
                     if (textSpan.scrollWidth > visibleWidth) {
                         const distance = textSpan.scrollWidth - visibleWidth;
-                        // Linear speed relative to scroll distance
                         textSpan.style.transition = `transform ${distance * 0.015}s linear 0.2s`; 
                         textSpan.style.transform = `translateX(-${distance}px)`;
                     }
@@ -489,11 +560,7 @@
                     textSpan.style.transform = `translateX(0)`;
                 };
 
-                div.onclick = () => {
-                    UI.out.jumpInp.value = item.wordIdx + 1;
-                    handleJumpInput();
-                    UI.out.sidebar.classList.remove('open'); 
-                };
+                div.onclick = () => { UI.out.jumpInp.value = item.wordIdx + 1; handleJumpInput(); UI.out.sidebar.classList.remove('open'); };
                 UI.out.sidebarContent.appendChild(div);
             });
         }
@@ -504,6 +571,17 @@
             
             if(document.activeElement !== UI.out.jumpInp) UI.out.jumpInp.value = wordObj.globalIdx + 1;
 
+            // Update Context Underlay
+            const contextSpan = document.getElementById(`uw-${wordObj.globalIdx}`);
+            if(contextSpan) {
+                if(STATE.lastContextSpan) STATE.lastContextSpan.classList.remove('active-word');
+                contextSpan.classList.add('active-word');
+                STATE.lastContextSpan = contextSpan;
+                // Scroll synchronously, keeping it perfectly centered horizontally and vertically
+                contextSpan.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'center' });
+            }
+
+            // RSVP Stage Update
             const displayToken = wordObj.clean;
             if (!displayToken) return; 
 
@@ -546,28 +624,20 @@
 
             jumpTo(globalWordIdx, requireRestart = true) {
                 if(requireRestart) {
-                    this.pause();
-                    window.speechSynthesis.cancel();
+                    this.pause(); window.speechSynthesis.cancel();
                     if(this.timer) clearInterval(this.timer);
                     this.engineSupportsBoundaries = false; 
                 }
-
                 this.currentClauseIdx = Math.max(0, this.clauses.findIndex(c => c.words.some(w => w.globalIdx >= globalWordIdx)));
-                
                 if(STATE.isPaused) {
                     if(this.clauses[this.currentClauseIdx]) {
                         const targetWord = this.clauses[this.currentClauseIdx].words.find(w => w.globalIdx >= globalWordIdx) || this.clauses[this.currentClauseIdx].words[0];
                         renderWord(targetWord);
                     }
-                } else {
-                    this.playClause(globalWordIdx);
-                }
+                } else this.playClause(globalWordIdx);
             }
 
-            changeVoice(voiceIndex, isEdge) {
-                this.voiceIndex = voiceIndex;
-                this.isEdge = isEdge;
-            }
+            changeVoice(voiceIndex, isEdge) { this.voiceIndex = voiceIndex; this.isEdge = isEdge; }
 
             playClause(startAtGlobalIdx = null) {
                 if (!this.isActive || STATE.isPaused) return;
@@ -584,13 +654,11 @@
                     if(currentVisualIdx === -1) currentVisualIdx = 0;
                 }
 
-                const wpm = 220 * this.rate;
-                const msPerWord = 60000 / wpm;
+                const msPerWord = 60000 / (220 * this.rate);
 
                 utt.onstart = () => {
                     renderWord(clause.words[currentVisualIdx]);
                     if(this.timer) clearInterval(this.timer);
-                    
                     if (!this.engineSupportsBoundaries || this.isEdge) {
                         this.timer = setInterval(() => {
                             if(STATE.isPaused) return;
@@ -626,37 +694,11 @@
             }
 
             pause() { window.speechSynthesis.pause(); }
-            resume() { 
-                window.speechSynthesis.resume(); 
-                if(!window.speechSynthesis.speaking) this.playClause(); 
-            }
-            stop() { 
-                this.isActive = false; 
-                if(this.timer) clearInterval(this.timer);
-                window.speechSynthesis.cancel(); 
-            }
+            resume() { window.speechSynthesis.resume(); if(!window.speechSynthesis.speaking) this.playClause(); }
+            stop() { this.isActive = false; if(this.timer) clearInterval(this.timer); window.speechSynthesis.cancel(); }
         }
 
         // --- Application Control ---
-        const StorageManager = {
-            saveBookmark() {
-                if(!STATE.pipelineData) return;
-                const data = { text: UI.in.text.value, wordIdx: STATE.currentWordGlobalIndex, rate: UI.in.rate.value, voice: UI.in.voice.value };
-                localStorage.setItem('ReadSync_Save', JSON.stringify(data));
-                alert("Session saved locally. You can resume later.");
-            },
-            checkBookmark() { if(localStorage.getItem('ReadSync_Save')) UI.in.bookmarkAlert.style.display = 'block'; },
-            loadBookmark() {
-                const data = JSON.parse(localStorage.getItem('ReadSync_Save'));
-                if(!data) return;
-                UI.in.text.value = data.text;
-                UI.in.rate.value = data.rate; UI.in.rateDisp.innerText = data.rate;
-                UI.in.voice.value = data.voice;
-                UI.in.bookmarkAlert.style.display = 'none';
-                startSequence(data.wordIdx);
-            }
-        };
-
         function togglePause() {
             STATE.isPaused = !STATE.isPaused;
             if (STATE.isPaused) {
@@ -669,14 +711,15 @@
         }
 
         function startSequence(startWordIdx = 0) {
-            let raw = UI.in.text.value;
-            if (!raw.trim()) return alert("No text input found.");
+            STATE.rawText = UI.in.text.value; // Store absolute original text unaltered
+            if (!STATE.rawText.trim()) return alert("No text input found.");
 
-            STATE.pipelineData = TextPipeline.parse(raw);
+            STATE.pipelineData = TextPipeline.parse(STATE.rawText);
             if(STATE.pipelineData.totalWords === 0) return alert("No words extracted.");
 
             UI.out.totalWords.innerText = STATE.pipelineData.totalWords;
             buildSidebar(); 
+            buildContextLayer(STATE.rawText, STATE.pipelineData);
 
             UI.layers.input.classList.add('hidden');
             UI.layers.reader.classList.remove('hidden');
@@ -698,15 +741,13 @@
         function stopSequence() {
             if (STATE.activeEngine) STATE.activeEngine.stop();
             STATE.activeEngine = null; STATE.isPaused = false;
-            
             if (document.fullscreenElement) document.exitFullscreen();
-
+            
             UI.layers.reader.classList.add('hidden');
             UI.layers.input.classList.remove('hidden');
             UI.out.sidebar.classList.remove('open');
+            UI.out.contextLayer.classList.remove('active');
             UI.out.left.innerText = ''; UI.out.pivot.innerText = ''; UI.out.right.innerText = '';
-            
-            StorageManager.checkBookmark(); 
         }
     </script>
 </body>
