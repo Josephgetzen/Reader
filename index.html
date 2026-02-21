@@ -269,8 +269,7 @@
     <script>
         /**
          * ReadSync | Enterprise Architecture
-         * Features: Monotonic Lexer Bounds, V-Sync Context Scroll, Zen Fullscreen, 
-         * Bookmark Persistence & Restored Sidebar Toggles.
+         * Added Fix: TTS Hyphen Masking Engine & Exact Title Extraction
          */
 
         if(window.pdfjsLib) window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
@@ -329,11 +328,8 @@
                 alert("Session Bookmarked! You can resume from this word later.");
             },
             checkBookmark() {
-                if(localStorage.getItem('ReadSync_Save')) {
-                    UI.in.bookmarkAlert.style.display = 'block';
-                } else {
-                    UI.in.bookmarkAlert.style.display = 'none';
-                }
+                if(localStorage.getItem('ReadSync_Save')) UI.in.bookmarkAlert.style.display = 'block';
+                else UI.in.bookmarkAlert.style.display = 'none';
             },
             loadBookmark() {
                 const data = JSON.parse(localStorage.getItem('ReadSync_Save'));
@@ -473,7 +469,6 @@
                 else document.exitFullscreen();
             });
 
-            // Restored correct toggle behavior for the sidebar
             UI.out.btnToggleSidebar.addEventListener('click', () => UI.out.sidebar.classList.toggle('open'));
             UI.out.btnCloseSidebar.addEventListener('click', () => UI.out.sidebar.classList.remove('open'));
 
@@ -513,14 +508,15 @@
             STATE.activeEngine.jumpTo(target);
         }
 
-        // --- Text Pipeline (Dual-Index Lexer) ---
+        // --- Text Pipeline (Dual-Index Lexer w/ Hyphen Parsing) ---
         class TextPipeline {
             static parse(rawText) {
                 const clauses = [];
                 const structure = [];
                 let globalIdx = 0;
                 
-                const wordRegex = /[^\s\-—]+/g; 
+                // Matches non-whitespace and non-dash characters (safely parsing hyphens as word delimiters)
+                const wordRegex = /[^\s\-—–]+/g; 
                 let match;
                 let currentClauseWords = [];
                 let currentClauseStart = 0;
@@ -546,8 +542,11 @@
                             const firstWordIdx = currentClauseWords[0].globalIdx;
 
                             if (isChapter || isShortUpper || firstWordIdx === 0 || firstWordIdx >= nextSegmentThreshold) {
-                                const titleWords = currentClauseWords.slice(0, 20).map(w => w.raw).join(' ');
-                                structure.push({ title: titleWords + (currentClauseWords.length > 20 ? '...' : ''), wordIdx: firstWordIdx });
+                                // Extract EXACT original string for the sidebar title (preserves hyphens/punctuation)
+                                const firstW = currentClauseWords[0];
+                                const lastW = currentClauseWords[Math.min(19, currentClauseWords.length - 1)];
+                                const titleText = rawText.substring(firstW.charStart, lastW.charEnd);
+                                structure.push({ title: titleText + (currentClauseWords.length > 20 ? '...' : ''), wordIdx: firstWordIdx });
                                 nextSegmentThreshold = firstWordIdx + 400; 
                             }
                         }
@@ -712,7 +711,13 @@
                 if (this.currentClauseIdx >= this.clauses.length) return stopSequence();
 
                 const clause = this.clauses[this.currentClauseIdx];
-                const utt = new SpeechSynthesisUtterance(clause.text);
+                
+                // MASKING ENGINE: Replaces hyphens/dashes with spaces in the audio buffer.
+                // This forces the TTS engine to see them as individual words and fire an event for each one,
+                // completely bypassing the TTS hyphen-grouping bug while preserving string length.
+                const audioText = clause.text.replace(/[-—–]/g, ' ');
+                const utt = new SpeechSynthesisUtterance(audioText);
+                
                 if (!this.isEdge && STATE.voices[this.voiceIndex]) utt.voice = STATE.voices[this.voiceIndex];
                 utt.rate = this.rate;
 
@@ -722,7 +727,6 @@
                     if(currentVisualIdx === -1) currentVisualIdx = 0;
                 }
 
-                // Base Math WPM slightly elevated to prevent race-condition skipping
                 const msPerWord = 60000 / (260 * this.rate);
 
                 utt.onstart = () => {
