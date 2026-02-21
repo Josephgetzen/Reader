@@ -95,9 +95,9 @@
             white-space: pre-wrap; font-family: var(--font-read); font-size: 1.1rem; line-height: 2.0;
             color: rgba(255, 255, 255, var(--context-opacity, 0.20));
             z-index: 1; text-align: left; display: none;
-            scrollbar-width: none; /* Firefox */
+            scrollbar-width: none; 
         }
-        #context-layer::-webkit-scrollbar { display: none; /* Chrome/Safari */ }
+        #context-layer::-webkit-scrollbar { display: none; }
         #context-layer.active { display: block; }
         #context-layer span { transition: color 0.1s, font-weight 0.1s; }
         #context-layer span.active-word { color: var(--accent-color); font-weight: 800; text-shadow: 0 0 10px rgba(59,130,246,0.6); }
@@ -258,7 +258,7 @@
     <script>
         /**
          * ReadSync | Enterprise Architecture
-         * Added Features: Context Underlay (V-Sync Scrolling Fix), Dual-Index Boundary Lexer.
+         * Added Features: Monotonic Lexer Bounds, Hardware-Accel V-Sync Scroll, Skip-Word Rescue
          */
 
         if(window.pdfjsLib) window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
@@ -433,7 +433,6 @@
                 UI.out.contextLayer.classList.toggle('active');
                 UI.out.btnToggleContext.classList.toggle('active');
                 
-                // Align on toggle
                 if(UI.out.contextLayer.classList.contains('active') && STATE.lastContextSpan) {
                     const container = UI.out.contextLayer;
                     const spanTop = STATE.lastContextSpan.offsetTop;
@@ -470,7 +469,6 @@
                 const structure = [];
                 let globalIdx = 0;
                 
-                // Excludes space, hyphen, em-dash
                 const wordRegex = /[^\s\-—]+/g; 
                 let match;
                 let currentClauseWords = [];
@@ -503,7 +501,6 @@
                             }
                         }
 
-                        // Set secondary index specifically for the Speech Synthesis Event hook
                         currentClauseWords.forEach(w => {
                             w.clauseCharStart = w.charStart - currentClauseStart;
                             w.clauseCharEnd = w.charEnd - currentClauseStart;
@@ -511,7 +508,7 @@
 
                         clauses.push({ text: clauseText, words: currentClauseWords });
                         currentClauseWords = [];
-                        currentClauseStart = charStart; // Advance the clause base pointer
+                        currentClauseStart = charStart; 
                     }
 
                     if (cleanWord.length > 0) {
@@ -586,7 +583,7 @@
             
             if(document.activeElement !== UI.out.jumpInp) UI.out.jumpInp.value = wordObj.globalIdx + 1;
 
-            // Safe Manual V-Sync Scrolling for the Underlay
+            // Safe Hardware-Accel V-Sync Scrolling ('auto' prevents main thread locking queues)
             const contextSpan = document.getElementById(`uw-${wordObj.globalIdx}`);
             if(contextSpan) {
                 if(STATE.lastContextSpan) STATE.lastContextSpan.classList.remove('active-word');
@@ -598,7 +595,7 @@
                     const spanTop = contextSpan.offsetTop;
                     const containerHalf = container.clientHeight / 2;
                     const spanHalf = contextSpan.clientHeight / 2;
-                    container.scrollTo({ top: spanTop - containerHalf + spanHalf, behavior: 'smooth' });
+                    container.scrollTo({ top: spanTop - containerHalf + spanHalf, behavior: 'auto' });
                 }
             }
 
@@ -674,11 +671,13 @@
                     if(currentVisualIdx === -1) currentVisualIdx = 0;
                 }
 
-                const msPerWord = 60000 / (220 * this.rate);
+                // Base Math WPM slightly elevated to prevent race-condition skipping
+                const msPerWord = 60000 / (260 * this.rate);
 
                 utt.onstart = () => {
                     renderWord(clause.words[currentVisualIdx]);
                     if(this.timer) clearInterval(this.timer);
+                    
                     if (!this.engineSupportsBoundaries || this.isEdge) {
                         this.timer = setInterval(() => {
                             if(STATE.isPaused) return;
@@ -696,8 +695,14 @@
                             this.engineSupportsBoundaries = true;
                             if(this.timer) clearInterval(this.timer);
                         }
-                        // Fault-tolerant clause offset mapping
-                        const exactIdx = clause.words.findIndex(w => e.charIndex >= (w.clauseCharStart - 2) && e.charIndex <= (w.clauseCharEnd + 1));
+                        
+                        // Monotonic Lexer Bounds Checker
+                        let exactIdx = currentVisualIdx;
+                        for (let i = currentVisualIdx; i < clause.words.length; i++) {
+                            if (e.charIndex >= (clause.words[i].clauseCharStart - 2)) exactIdx = i;
+                            else break;
+                        }
+                        
                         if (exactIdx > currentVisualIdx) {
                             currentVisualIdx = exactIdx;
                             renderWord(clause.words[currentVisualIdx]);
@@ -707,8 +712,20 @@
 
                 utt.onend = () => {
                     if(this.timer) clearInterval(this.timer);
-                    this.currentClauseIdx++;
-                    if(this.isActive && !STATE.isPaused) this.playClause();
+                    
+                    const advanceClause = () => {
+                        this.currentClauseIdx++;
+                        if(this.isActive && !STATE.isPaused) this.playClause();
+                    };
+
+                    // Skip-Word Rescue: Ensures the final word renders even if native API dropped the boundary
+                    if (currentVisualIdx < clause.words.length - 1) {
+                        currentVisualIdx = clause.words.length - 1;
+                        renderWord(clause.words[currentVisualIdx]);
+                        setTimeout(advanceClause, 150); // Grace period to perceive the final word
+                    } else {
+                        advanceClause();
+                    }
                 };
 
                 window.speechSynthesis.speak(utt);
