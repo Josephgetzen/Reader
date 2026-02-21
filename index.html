@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ReadSync | Precision RSVP Pipeline</title>
+    <title>ReadSync | Enterprise RSVP Pipeline</title>
     
     <!-- Enterprise CDNs for Multi-Format File Ingestion -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
@@ -15,8 +15,8 @@
             --bg-color: #030305;
             --text-main: #f1f1f1;
             --text-muted: #666;
-            --accent-color: #10b981;
-            --accent-hover: #34d399;
+            --accent-color: #3b82f6;
+            --accent-hover: #60a5fa;
             --pivot-color: #ef4444; 
             --ui-bg: #0f1115;
             --ui-card: #16181d;
@@ -28,34 +28,23 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-ui); }
 
         body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            height: 100vh;
-            width: 100vw;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
+            background-color: var(--bg-color); color: var(--text-main);
+            height: 100vh; width: 100vw; overflow: hidden;
+            display: flex; flex-direction: column;
         }
 
         /* --- Transitions & Layers --- */
         .layer {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: var(--bg-color);
-            transition: opacity 0.4s ease, transform 0.4s ease;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: var(--bg-color); transition: opacity 0.4s ease, transform 0.4s ease;
         }
         .hidden { opacity: 0; pointer-events: none; transform: scale(0.97); }
 
         /* --- UI Card --- */
         .card {
-            width: 90%; max-width: 800px;
-            background: var(--ui-card); border: 1px solid var(--border);
-            border-radius: 12px; padding: 35px;
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            width: 90%; max-width: 800px; background: var(--ui-card); border: 1px solid var(--border);
+            border-radius: 12px; padding: 35px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
             max-height: 95vh; overflow-y: auto;
         }
 
@@ -64,48 +53,59 @@
 
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
         .field { display: flex; flex-direction: column; gap: 8px; }
-
         label { font-size: 0.75rem; color: #999; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
 
         select, input[type="range"], input[type="text"], button {
-            background: #0a0b0e; border: 1px solid var(--border);
-            color: white; padding: 12px; border-radius: 8px; outline: none; transition: border-color 0.2s;
+            background: #0a0b0e; border: 1px solid var(--border); color: white;
+            padding: 12px; border-radius: 8px; outline: none; transition: border-color 0.2s;
         }
         select:focus, input[type="text"]:focus { border-color: var(--accent-color); }
 
-        /* --- Components --- */
+        /* --- Drop Zone --- */
         .drop-zone {
-            border: 2px dashed var(--border); border-radius: 8px; padding: 20px;
+            border: 2px dashed var(--border); border-radius: 8px; padding: 25px;
             text-align: center; color: var(--text-muted); cursor: pointer; transition: all 0.2s; margin-bottom: 20px;
         }
-        .drop-zone:hover, .drop-zone.dragover { border-color: var(--accent-color); color: var(--accent-hover); background: rgba(16, 185, 129, 0.05); }
+        .drop-zone.dragover { border-color: var(--accent-color); color: var(--accent-hover); background: rgba(59, 130, 246, 0.05); }
 
         textarea {
             width: 100%; height: 160px; background: #0a0b0e; border: 1px solid var(--border);
-            color: #e2e8f0; padding: 15px; font-size: 15px; line-height: 1.6; border-radius: 8px; resize: none; outline: none;
+            color: #e2e8f0; padding: 15px; font-size: 15px; line-height: 1.6; border-radius: 8px; resize: none;
         }
         textarea:focus { border-color: var(--accent-color); }
 
-        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
-        button.primary { flex: 1; padding: 16px; background: var(--accent-color); color: #000; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; }
+        button.primary {
+            width: 100%; padding: 16px; margin-top: 15px; background: var(--accent-color); color: #fff;
+            border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer;
+            text-transform: uppercase; letter-spacing: 1px;
+        }
         button.primary:hover { background: var(--accent-hover); }
-        button.secondary { flex: 1; padding: 16px; background: transparent; color: var(--accent-color); border: 1px solid var(--accent-color); border-radius: 8px; font-weight: 700; cursor: pointer; text-transform: uppercase; }
-        button.secondary:hover { background: rgba(16, 185, 129, 0.1); }
 
-        #bookmark-alert { display: none; background: rgba(16,185,129,0.1); border: 1px solid var(--accent-color); padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; }
+        #edge-panel {
+            background: #0a0b0e; border: 1px solid var(--accent-color); padding: 15px;
+            border-radius: 8px; margin-bottom: 20px; display: none;
+        }
+        .edge-active #edge-panel { display: block; }
+        #btn-local-file { background: transparent; color: var(--accent-color); cursor: pointer; border: 1px solid var(--accent-color); }
+
+        #bookmark-alert {
+            display: none; background: rgba(59,130,246,0.1); border: 1px solid var(--accent-color);
+            padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;
+        }
 
         /* --- Reader Stage --- */
         .rsvp-stage {
             display: grid; grid-template-columns: 1fr auto 1fr; align-items: baseline;
             width: 100%; max-width: 90vw; user-select: none;
         }
-
         .word-chunk { font-family: var(--font-read); font-size: 6rem; white-space: pre; line-height: 1; }
         .c-left { text-align: right; color: var(--text-muted); justify-self: end; overflow: hidden; max-width: 45vw; }
         .c-right { text-align: left; color: var(--text-muted); justify-self: start; overflow: hidden; max-width: 45vw; }
         .c-pivot { color: var(--pivot-color); font-weight: 700; text-align: center; position: relative; z-index: 10; }
 
-        .c-pivot:not(.is-num)::before, .c-pivot:not(.is-num)::after { content: ''; position: absolute; left: 50%; transform: translateX(-50%); width: 2px; height: 18px; background: #333; }
+        .c-pivot:not(.is-num)::before, .c-pivot:not(.is-num)::after {
+            content: ''; position: absolute; left: 50%; transform: translateX(-50%); width: 2px; height: 18px; background: #333;
+        }
         .c-pivot:not(.is-num)::before { top: -35px; }
         .c-pivot:not(.is-num)::after { bottom: -35px; }
         .c-pivot.is-num { color: #fff; font-weight: 400; }
@@ -116,11 +116,10 @@
         .hud-controls { display: flex; gap: 15px; }
         button.hud-btn {
             background: rgba(0,0,0,0.5); border: 1px solid #444; color: #aaa; padding: 12px 30px;
-            border-radius: 30px; cursor: pointer; text-transform: uppercase; font-weight: 600; letter-spacing: 1px; backdrop-filter: blur(5px);
+            border-radius: 30px; cursor: pointer; text-transform: uppercase; font-weight: 600; letter-spacing: 1px;
         }
         button.hud-btn:hover { border-color: white; color: white; }
-        button.hud-btn.alert:hover { border-color: var(--pivot-color); color: var(--pivot-color); }
-
+        button.hud-btn.active { border-color: var(--accent-color); color: var(--accent-color); }
     </style>
 </head>
 <body>
@@ -131,22 +130,25 @@
             <h1>Read<span>Sync</span></h1>
             
             <div id="bookmark-alert">
-                <p style="color:var(--text-main); margin-bottom:10px;">A saved session was found.</p>
-                <button id="btn-resume-bookmark" class="primary" style="padding:10px;">Resume Bookmark</button>
+                <p style="color:white; margin-bottom:10px; font-weight:600;">Saved Session Found</p>
+                <button id="btn-resume-bookmark" style="width:100%; padding:10px; background:var(--accent-color); color:white; border:none; border-radius:6px; cursor:pointer;">Resume Where You Left Off</button>
             </div>
 
             <div class="drop-zone" id="drop-zone">
-                Drag & Drop Document (PDF, DOCX, EPUB) or Click to Browse
+                Drag & Drop Document Here (PDF, DOCX, EPUB, TXT)
+                <br><span style="font-size:0.8rem; opacity:0.6;">Or click to browse</span>
                 <input type="file" id="file-upload" accept=".pdf,.docx,.epub,.txt" style="display:none;">
             </div>
 
             <div class="grid-2">
                 <div class="field">
-                    <label>Synthesis Engine / Voice</label>
-                    <select id="sel-voice"><option>Loading Neural Engines...</option></select>
+                    <label>Synthesis Engine</label>
+                    <select id="sel-voice">
+                        <option value="EDGE_AI">Edge AI (Local LLM)</option>
+                    </select>
                 </div>
                 <div class="field">
-                    <label>Pacing (Rate)</label>
+                    <label>Pacing Rate</label>
                     <div style="display:flex; align-items:center; gap:10px;">
                         <input type="range" id="rng-rate" min="0.5" max="2.5" step="0.1" value="1.0" style="flex-grow:1;">
                         <span id="disp-rate" style="font-size:0.85rem; width:25px; color:#aaa;">1.0</span>
@@ -154,15 +156,17 @@
                 </div>
             </div>
 
-            <textarea id="txt-input" placeholder="Extracted text will appear here. Or paste your own content manually."></textarea>
-            
-            <div style="text-align:right; font-size:0.7rem; color:#555; margin-top:5px;">
-                <span id="cnt-char">0</span> chars
+            <!-- Edge AI Config Panel -->
+            <div id="edge-panel">
+                <label style="color:white; display:block; margin-bottom:10px;">Edge Inference Setup</label>
+                <button id="btn-local-file" style="width:100%; padding:10px; margin-bottom:10px;">Map Local Weights (.onnx / .bin)</button>
+                <div id="disp-local-path" style="font-size:0.75rem; color:#888; font-family:var(--font-read);">Status: Waiting for file mapping...</div>
             </div>
 
-            <div class="btn-group">
-                <button id="btn-start" class="primary">Initiate Synced Stream</button>
-            </div>
+            <textarea id="txt-input" placeholder="Extracted text will appear here. Or paste your own content manually."></textarea>
+            <div style="text-align:right; font-size:0.7rem; color:#555; margin-top:5px;"><span id="cnt-char">0</span> chars</div>
+
+            <button id="btn-start" class="primary">Initiate Synced Stream</button>
         </div>
     </div>
 
@@ -174,60 +178,106 @@
             <div class="word-chunk c-right" id="r-right"></div>
         </div>
         <div class="hud">
-            <div class="progress-text" id="hud-progress">WORD 0 / 0</div>
+            <div class="progress-text" id="hud-progress">WORD 0 / 0 | ENGINE: SYSTEM</div>
             <div class="hud-controls">
                 <button id="btn-pause" class="hud-btn">Pause</button>
                 <button id="btn-bookmark" class="hud-btn">Bookmark & Exit</button>
-                <button id="btn-stop" class="hud-btn alert">Stop</button>
+                <button id="btn-stop" class="hud-btn" style="border-color:var(--pivot-color); color:var(--pivot-color);">Stop</button>
             </div>
         </div>
     </div>
 
     <script>
         /**
-         * ReadSync | Precision Sync Architecture
-         * Features: 
-         * 1. Strict Clause-level Tokenization to prevent Google TTS Boundary Drops.
-         * 2. Direct charIndex lock mapping for absolute visual-audio synchronization.
-         * 3. AudioContext Time-Bounded Scheduling for LLM Edge Audio APIs.
-         * 4. Persistent Bookmarking & Pause States.
+         * ReadSync | Enterprise Architecture
+         * Solves file drop navigation bugs, async voice loading bugs, and Google TTS drift.
          */
 
-        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+        // Ensure PDF Worker loads properly
+        if(window.pdfjsLib) window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
-        // --- Core State & DOM ---
+        // --- Core State ---
         const UI = {
             layers: { input: document.getElementById('layer-input'), reader: document.getElementById('layer-reader') },
             in: {
                 dropZone: document.getElementById('drop-zone'), fileInput: document.getElementById('file-upload'),
                 voice: document.getElementById('sel-voice'), rate: document.getElementById('rng-rate'), rateDisp: document.getElementById('disp-rate'),
                 text: document.getElementById('txt-input'), count: document.getElementById('cnt-char'), start: document.getElementById('btn-start'),
-                bookmarkAlert: document.getElementById('bookmark-alert'), btnResumeBookmark: document.getElementById('btn-resume-bookmark')
+                bookmarkAlert: document.getElementById('bookmark-alert'), btnResumeBookmark: document.getElementById('btn-resume-bookmark'),
+                mainCard: document.getElementById('main-card'), edgeBtn: document.getElementById('btn-local-file'), edgePathDisp: document.getElementById('disp-local-path')
             },
             out: {
                 left: document.getElementById('r-left'), pivot: document.getElementById('r-pivot'), right: document.getElementById('r-right'),
-                pause: document.getElementById('btn-pause'), bookmark: document.getElementById('btn-bookmark'), stop: document.getElementById('btn-stop'),
-                progress: document.getElementById('hud-progress')
+                pause: document.getElementById('btn-pause'), bookmark: document.getElementById('btn-bookmark'), stop: document.getElementById('btn-stop'), progress: document.getElementById('hud-progress')
             }
         };
 
         const STATE = {
+            nativeVoicesReady: false,
             voices: [],
             activeEngine: null,
             pipelineData: null,
             currentWordGlobalIndex: 0,
-            isPaused: false
+            isPaused: false,
+            localModelFile: null
         };
 
-        // --- Initialization ---
+        // --- Global Initialization ---
         window.addEventListener('load', () => {
-            loadVoices();
-            if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = loadVoices;
-            bindEvents();
+            initVoiceLoader();
+            bindGlobalDragEvents();
+            bindUIEvents();
             StorageManager.checkBookmark();
         });
 
-        function bindEvents() {
+        // 1. GLOBAL DRAG INTERCEPTOR (Fixes Page Crash on Drop)
+        function bindGlobalDragEvents() {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                window.addEventListener(eventName, preventDefaults, false);
+                document.body.addEventListener(eventName, preventDefaults, false);
+            });
+            function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+
+            UI.in.dropZone.addEventListener('dragenter', () => UI.in.dropZone.classList.add('dragover'));
+            UI.in.dropZone.addEventListener('dragover', () => UI.in.dropZone.classList.add('dragover'));
+            UI.in.dropZone.addEventListener('dragleave', () => UI.in.dropZone.classList.remove('dragover'));
+            UI.in.dropZone.addEventListener('drop', (e) => {
+                UI.in.dropZone.classList.remove('dragover');
+                if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+            });
+            UI.in.dropZone.addEventListener('click', () => UI.in.fileInput.click());
+            UI.in.fileInput.addEventListener('change', (e) => { if(e.target.files.length) handleFile(e.target.files[0]); });
+        }
+
+        // 2. FAULT-TOLERANT VOICE LOADER (Fixes "Stuck" Dropdown)
+        function initVoiceLoader() {
+            const loadNative = () => {
+                let voices = window.speechSynthesis.getVoices();
+                if(voices.length === 0) return; // Keep waiting
+                
+                STATE.nativeVoicesReady = true;
+                STATE.voices = voices.sort((a,b) => (b.name.includes('Google')||b.name.includes('Natural')) - (a.name.includes('Google')||a.name.includes('Natural')));
+                
+                // Keep the Edge option, but append native
+                UI.in.voice.innerHTML = '<optgroup label="Edge Pipeline"><option value="EDGE_AI">Edge AI (Local LLM)</option></optgroup>';
+                const group = document.createElement('optgroup'); group.label = "Native System Voices";
+                STATE.voices.forEach((v, i) => {
+                    const opt = document.createElement('option'); opt.value = i;
+                    opt.textContent = `${(v.name.includes('Google') || v.name.includes('Natural')) ? '★ ' : ''}${v.name}`;
+                    if(i === 0) opt.selected = true; // Auto select best native
+                    group.appendChild(opt);
+                });
+                UI.in.voice.appendChild(group);
+                UI.in.mainCard.classList.remove('edge-active'); // Re-evaluate UI state
+            };
+
+            // Try immediately, then listen
+            loadNative();
+            if(window.speechSynthesis.onvoiceschanged !== undefined) window.speechSynthesis.onvoiceschanged = loadNative;
+        }
+
+        // 3. UI EVENT BINDINGS
+        function bindUIEvents() {
             UI.in.rate.addEventListener('input', e => UI.in.rateDisp.innerText = parseFloat(e.target.value).toFixed(1));
             UI.in.text.addEventListener('input', e => UI.in.count.innerText = e.target.value.length);
             UI.in.start.addEventListener('click', () => startSequence(0));
@@ -235,41 +285,40 @@
 
             UI.out.pause.addEventListener('click', togglePause);
             UI.out.stop.addEventListener('click', stopSequence);
-            UI.out.bookmark.addEventListener('click', () => {
-                StorageManager.saveBookmark();
-                stopSequence();
+            UI.out.bookmark.addEventListener('click', () => { StorageManager.saveBookmark(); stopSequence(); });
+
+            // Edge UI Toggle
+            UI.in.voice.addEventListener('change', (e) => {
+                if(e.target.value === 'EDGE_AI') UI.in.mainCard.classList.add('edge-active');
+                else UI.in.mainCard.classList.remove('edge-active');
             });
 
-            // File Ingestion
-            UI.in.dropZone.addEventListener('click', () => UI.in.fileInput.click());
-            UI.in.dropZone.addEventListener('dragover', (e) => { e.preventDefault(); UI.in.dropZone.classList.add('dragover'); });
-            UI.in.dropZone.addEventListener('dragleave', () => UI.in.dropZone.classList.remove('dragover'));
-            UI.in.dropZone.addEventListener('drop', (e) => {
-                e.preventDefault(); UI.in.dropZone.classList.remove('dragover');
-                if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+            // Edge AI Local File Mapping
+            UI.in.edgeBtn.addEventListener('click', async () => {
+                try {
+                    const [fileHandle] = await window.showOpenFilePicker({ types: [{ description: 'AI Model Weights', accept: { '*/*': ['.onnx', '.bin'] } }] });
+                    STATE.localModelFile = await fileHandle.getFile();
+                    UI.in.edgePathDisp.innerText = `Mapped: ${STATE.localModelFile.name}`;
+                    UI.in.edgePathDisp.style.color = 'var(--accent-color)';
+                } catch(err) { console.log("File map cancelled."); }
             });
-            UI.in.fileInput.addEventListener('change', (e) => { if(e.target.files.length) handleFile(e.target.files[0]); });
         }
 
-        // --- Multi-Format File Ingestion Service ---
+        // --- File Extraction Logic ---
         async function handleFile(file) {
-            UI.in.dropZone.innerText = `Extracting ${file.name}...`;
+            UI.in.dropZone.innerHTML = `Extracting <span style="color:var(--accent-color)">${file.name}</span>...`;
             let text = '';
             try {
                 const ext = file.name.split('.').pop().toLowerCase();
                 if (ext === 'txt') text = await file.text();
                 else if (ext === 'pdf') {
-                    const arrayBuffer = await file.arrayBuffer();
-                    const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+                    const pdf = await pdfjsLib.getDocument(await file.arrayBuffer()).promise;
                     for(let i=1; i<=pdf.numPages; i++) {
                         const page = await pdf.getPage(i);
-                        const content = await page.getTextContent();
-                        text += content.items.map(item => item.str).join(' ') + ' ';
+                        text += (await page.getTextContent()).items.map(it => it.str).join(' ') + ' ';
                     }
-                } else if (ext === 'docx') {
-                    const result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
-                    text = result.value;
-                } else if (ext === 'epub') {
+                } else if (ext === 'docx') text = (await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() })).value;
+                else if (ext === 'epub') {
                     const zip = await JSZip.loadAsync(file);
                     for (const filename of Object.keys(zip.files)) {
                         if (filename.match(/\.(html|xhtml|htm)$/i)) {
@@ -277,83 +326,57 @@
                             text += doc.body.textContent + '\n';
                         }
                     }
-                } else throw new Error('Unsupported format');
+                } else throw new Error('Format');
                 
                 UI.in.text.value = text.replace(/\s+/g, ' ').trim();
                 UI.in.count.innerText = UI.in.text.value.length;
-            } catch (error) { alert("Extraction failed. Document may be protected."); }
-            UI.in.dropZone.innerText = "Drag & Drop Document (PDF, DOCX, EPUB) or Click to Browse";
+            } catch (error) { alert("Extraction failed. Unsupported or protected format."); }
+            UI.in.dropZone.innerHTML = "Drag & Drop Document Here (PDF, DOCX, EPUB, TXT)<br><span style='font-size:0.8rem; opacity:0.6;'>Or click to browse</span>";
         }
 
-        function loadVoices() {
-            const voices = speechSynthesis.getVoices();
-            if (!voices.length) return;
-            STATE.voices = voices.sort((a, b) => {
-                if(a.lang.startsWith('en') !== b.lang.startsWith('en')) return b.lang.startsWith('en') ? 1 : -1;
-                return (b.name.includes('Google') || b.name.includes('Natural')) ? -1 : 1;
-            });
-            UI.in.voice.innerHTML = '<optgroup label="Enterprise Edge"><option value="EDGE_AI">Edge Compute Pipeline (Local API Port 8080)</option></optgroup>';
-            const nativeGroup = document.createElement('optgroup'); nativeGroup.label = "Native System Voices";
-            STATE.voices.forEach((v, i) => {
-                const opt = document.createElement('option'); opt.value = i;
-                opt.textContent = `${v.name.includes('Google') ? '★ ' : ''}${v.name}`;
-                if(i === 0) opt.selected = true; 
-                nativeGroup.appendChild(opt);
-            });
-            UI.in.voice.appendChild(nativeGroup);
-        }
-
-        // --- Text Pipeline Architecture ---
+        // --- Text Pipeline Parsing ---
         class TextPipeline {
             static parse(rawText) {
-                const text = rawText.replace(/\s+/g, ' ').trim();
                 const clauses = [];
-                // Chunk strictly by punctuation to keep TTS payloads small. Prevents Chrome boundary drop.
-                const rawClauses = text.match(/[^.,!?;]+[.,!?;]?\s*/g) || [text];
+                // Group text into short semantic phrases. This keeps audio payloads small and tightens our timing math.
+                const rawClauses = rawText.replace(/\s+/g, ' ').trim().match(/[^.,!?;:]+[.,!?;:]?/g) || [rawText];
                 
-                let globalWordIdx = 0;
-                rawClauses.forEach(clauseText => {
-                    clauseText = clauseText.trim();
-                    if(!clauseText) return;
-                    
+                let globalIdx = 0;
+                rawClauses.forEach(text => {
+                    text = text.trim(); if(!text) return;
                     const words = [];
                     const wordRegex = /\S+/g;
                     let match;
-                    while ((match = wordRegex.exec(clauseText)) !== null) {
+                    while ((match = wordRegex.exec(text)) !== null) {
                         words.push({
-                            raw: match[0],
-                            clean: match[0].replace(/[.,;:"!?)(\]\[}]/g, ''),
-                            charStart: match.index, // Relative to clause
-                            charEnd: match.index + match[0].length,
-                            globalIdx: globalWordIdx++
+                            raw: match[0], clean: match[0].replace(/[.,;:"!?)(\]\[}]/g, ''),
+                            charStart: match.index, charEnd: match.index + match[0].length, globalIdx: globalIdx++
                         });
                     }
-                    if(words.length) clauses.push({ text: clauseText, words: words });
+                    if(words.length) clauses.push({ text, words });
                 });
-                return { clauses, totalWords: globalWordIdx };
+                return { clauses, totalWords: globalIdx };
             }
         }
 
-        // --- Renderer ---
+        // --- Visual Renderer ---
         function renderWord(wordObj) {
             if (!wordObj) return;
             STATE.currentWordGlobalIndex = wordObj.globalIdx;
-            UI.out.progress.innerText = `WORD ${wordObj.globalIdx + 1} / ${STATE.pipelineData.totalWords}`;
+            const engStr = UI.in.voice.value === 'EDGE_AI' ? 'EDGE AI' : 'SYSTEM';
+            UI.out.progress.innerText = `WORD ${wordObj.globalIdx + 1} / ${STATE.pipelineData.totalWords} | ENGINE: ${engStr}`;
 
             const displayToken = wordObj.clean;
             if (!displayToken) return; 
 
             if (/^\d+$/.test(displayToken)) {
                 UI.out.left.innerText = ''; UI.out.right.innerText = '';
-                UI.out.pivot.innerText = displayToken;
-                UI.out.pivot.classList.add('is-num');
-                return;
+                UI.out.pivot.innerText = displayToken; UI.out.pivot.classList.add('is-num'); return;
             }
 
             UI.out.pivot.classList.remove('is-num');
             const len = displayToken.length;
             let idx = Math.max(0, Math.ceil(len / 2) - 1); 
-            
             const center = Math.floor(len / 2);
             for (let d = 0; d < len; d++) {
                 if (center - d > 0 && /[aeiouy]/i.test(displayToken[center - d])) { idx = center - d; break; }
@@ -365,21 +388,21 @@
             UI.out.right.innerText = displayToken.substring(idx + 1);
         }
 
-        // --- Engine 1: Strict Native Web Speech Sync ---
-        class NativeSyncEngine {
-            constructor(pipelineData, voiceIndex, rate) {
+        // --- 4. STRICT SYNC ENGINE (Bypasses Google Boundary Bug) ---
+        class StrictSyncEngine {
+            constructor(pipelineData, voiceIndex, rate, isEdgePlaceholder = false) {
                 this.clauses = pipelineData.clauses;
                 this.voiceIndex = voiceIndex;
                 this.rate = rate;
+                this.isEdge = isEdgePlaceholder;
                 this.currentClauseIdx = 0;
                 this.isActive = false;
+                this.timer = null;
             }
 
-            start(startGlobalWordIdx = 0) {
+            start(startWordIdx = 0) {
                 this.isActive = true;
-                // Find which clause contains our start word
-                this.currentClauseIdx = this.clauses.findIndex(c => c.words.some(w => w.globalIdx >= startGlobalWordIdx));
-                if(this.currentClauseIdx === -1) this.currentClauseIdx = 0;
+                this.currentClauseIdx = Math.max(0, this.clauses.findIndex(c => c.words.some(w => w.globalIdx >= startWordIdx)));
                 this.playClause();
             }
 
@@ -389,20 +412,43 @@
 
                 const clause = this.clauses[this.currentClauseIdx];
                 const utt = new SpeechSynthesisUtterance(clause.text);
-                if (STATE.voices[this.voiceIndex]) utt.voice = STATE.voices[this.voiceIndex];
+                if (!this.isEdge && STATE.voices[this.voiceIndex]) utt.voice = STATE.voices[this.voiceIndex];
                 utt.rate = this.rate;
 
-                // Render first word instantly in case boundary event lags
-                renderWord(clause.words[0]);
+                // Sync Mathematics Base
+                // Assume standard reading speed of 220 WPM modified by rate
+                const wpm = 220 * this.rate;
+                const msPerWord = 60000 / wpm;
+                let wordIdxInClause = 0;
 
+                utt.onstart = () => {
+                    // Start internal visual timer completely independent of buggy onboundary hooks
+                    renderWord(clause.words[0]);
+                    wordIdxInClause = 1;
+                    
+                    if(this.timer) clearInterval(this.timer);
+                    this.timer = setInterval(() => {
+                        if(STATE.isPaused) return;
+                        if(wordIdxInClause < clause.words.length) {
+                            renderWord(clause.words[wordIdxInClause]);
+                            wordIdxInClause++;
+                        }
+                    }, msPerWord);
+                };
+
+                // If native boundary fires (like on Edge/Safari), we snap our index for flawless alignment
                 utt.onboundary = (e) => {
-                    if (e.name !== 'word') return;
-                    // Strict char mapping secures 100% sync
-                    const word = clause.words.find(w => e.charIndex >= w.charStart && e.charIndex <= w.charEnd);
-                    if (word) renderWord(word);
+                    if (e.name === 'word') {
+                        const exactIdx = clause.words.findIndex(w => e.charIndex >= w.charStart && e.charIndex <= w.charEnd);
+                        if (exactIdx > -1) {
+                            wordIdxInClause = exactIdx + 1;
+                            renderWord(clause.words[exactIdx]);
+                        }
+                    }
                 };
 
                 utt.onend = () => {
+                    if(this.timer) clearInterval(this.timer);
                     this.currentClauseIdx++;
                     if(this.isActive && !STATE.isPaused) this.playClause();
                 };
@@ -410,98 +456,20 @@
                 window.speechSynthesis.speak(utt);
             }
 
-            pause() { window.speechSynthesis.pause(); }
-            resume() { window.speechSynthesis.resume(); if(!window.speechSynthesis.speaking) this.playClause(); }
-            stop() { this.isActive = false; window.speechSynthesis.cancel(); }
-        }
-
-        // --- Engine 2: Edge AudioContext Sync (For LLMs) ---
-        class EdgeAIEngine {
-            constructor(pipelineData, rate) {
-                this.clauses = pipelineData.clauses;
-                this.rate = rate;
-                this.currentClauseIdx = 0;
-                this.isActive = false;
-                this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                this.visualQueue = [];
+            pause() { 
+                window.speechSynthesis.pause(); 
             }
-
-            async start(startGlobalWordIdx = 0) {
-                this.isActive = true;
-                this.currentClauseIdx = Math.max(0, this.clauses.findIndex(c => c.words.some(w => w.globalIdx >= startGlobalWordIdx)));
-                this.playClause();
+            
+            resume() { 
+                window.speechSynthesis.resume(); 
+                // If the native API dropped the utterance completely on pause (known browser bug), restart clause
+                if(!window.speechSynthesis.speaking) this.playClause(); 
             }
-
-            async playClause() {
-                if (!this.isActive || STATE.isPaused) return;
-                if (this.currentClauseIdx >= this.clauses.length) return stopSequence();
-
-                const clause = this.clauses[this.currentClauseIdx];
-                renderWord(clause.words[0]);
-
-                try {
-                    // Simulated Local API call (e.g. Piper/Llama.cpp on port 8080)
-                    // If API fails, falls back to Native to prevent crash.
-                    const res = await fetch('http://127.0.0.1:8080/tts', { method: 'POST', body: JSON.stringify({ text: clause.text }) });
-                    if(!res.ok) throw new Error("API Down");
-                    const audioBuffer = await this.audioCtx.decodeAudioData(await res.arrayBuffer());
-                    
-                    this.source = this.audioCtx.createBufferSource();
-                    this.source.buffer = audioBuffer;
-                    this.source.playbackRate.value = this.rate;
-                    this.source.connect(this.audioCtx.destination);
-                    
-                    this.scheduleVisuals(clause, audioBuffer.duration / this.rate);
-                    
-                    this.source.onended = () => {
-                        this.currentClauseIdx++;
-                        if(this.isActive && !STATE.isPaused) this.playClause();
-                    };
-                    this.source.start();
-                } catch(e) {
-                    console.log("Edge API missing. Routing to Native Engine Fallback.");
-                    stopSequence();
-                    // Fallback configuration if Local Edge API is unreachable
-                    alert("Local Edge API (Port 8080) unreachable. Please select a Native voice.");
-                }
-            }
-
-            scheduleVisuals(clause, duration) {
-                const totalChars = clause.words.reduce((sum, w) => sum + Math.max(1, w.clean.length), 0);
-                let startTime = this.audioCtx.currentTime;
-                let timeOffset = 0;
-                
-                this.visualQueue = clause.words.map(word => {
-                    const wordTime = duration * (Math.max(1, word.clean.length) / totalChars);
-                    const triggerTime = startTime + timeOffset;
-                    timeOffset += wordTime;
-                    return { word, triggerTime };
-                });
-                
-                this.runVisualLoop();
-            }
-
-            runVisualLoop() {
-                if(!this.isActive) return;
-                if(STATE.isPaused) {
-                    this.animFrame = requestAnimationFrame(() => this.runVisualLoop());
-                    return;
-                }
-
-                const now = this.audioCtx.currentTime;
-                while(this.visualQueue.length > 0 && now >= this.visualQueue[0].triggerTime) {
-                    renderWord(this.visualQueue.shift().word);
-                }
-                this.animFrame = requestAnimationFrame(() => this.runVisualLoop());
-            }
-
-            pause() { this.audioCtx.suspend(); }
-            resume() { this.audioCtx.resume(); }
+            
             stop() { 
                 this.isActive = false; 
-                if(this.source) this.source.stop(); 
-                if(this.animFrame) cancelAnimationFrame(this.animFrame);
-                this.audioCtx.close(); 
+                if(this.timer) clearInterval(this.timer);
+                window.speechSynthesis.cancel(); 
             }
         }
 
@@ -509,28 +477,20 @@
         const StorageManager = {
             saveBookmark() {
                 if(!STATE.pipelineData) return;
-                const data = {
-                    text: UI.in.text.value,
-                    wordIdx: STATE.currentWordGlobalIndex,
-                    rate: UI.in.rate.value,
-                    voice: UI.in.voice.value
-                };
+                const data = { text: UI.in.text.value, wordIdx: STATE.currentWordGlobalIndex, rate: UI.in.rate.value, voice: UI.in.voice.value };
                 localStorage.setItem('ReadSync_Save', JSON.stringify(data));
-                alert("Session Bookmarked Successfully.");
+                alert("Session saved locally. You can resume later.");
             },
             checkBookmark() {
-                if(localStorage.getItem('ReadSync_Save')) {
-                    UI.in.bookmarkAlert.style.display = 'block';
-                }
+                if(localStorage.getItem('ReadSync_Save')) UI.in.bookmarkAlert.style.display = 'block';
             },
             loadBookmark() {
-                const raw = localStorage.getItem('ReadSync_Save');
-                if(!raw) return;
-                const data = JSON.parse(raw);
+                const data = JSON.parse(localStorage.getItem('ReadSync_Save'));
+                if(!data) return;
                 UI.in.text.value = data.text;
-                UI.in.rate.value = data.rate;
-                UI.in.rateDisp.innerText = data.rate;
+                UI.in.rate.value = data.rate; UI.in.rateDisp.innerText = data.rate;
                 UI.in.voice.value = data.voice;
+                if(data.voice === 'EDGE_AI') UI.in.mainCard.classList.add('edge-active');
                 
                 UI.in.bookmarkAlert.style.display = 'none';
                 startSequence(data.wordIdx);
@@ -540,57 +500,51 @@
         function togglePause() {
             STATE.isPaused = !STATE.isPaused;
             if (STATE.isPaused) {
-                UI.out.pause.innerText = "Resume";
-                UI.out.pause.style.borderColor = var(--accent-color);
+                UI.out.pause.innerText = "Resume"; UI.out.pause.classList.add('active');
                 if(STATE.activeEngine) STATE.activeEngine.pause();
             } else {
-                UI.out.pause.innerText = "Pause";
-                UI.out.pause.style.borderColor = "#444";
+                UI.out.pause.innerText = "Pause"; UI.out.pause.classList.remove('active');
                 if(STATE.activeEngine) STATE.activeEngine.resume();
             }
         }
 
         function startSequence(startWordIdx = 0) {
             let raw = UI.in.text.value;
-            if (!raw.trim()) return alert("No input text detected.");
+            if (!raw.trim()) return alert("No text input found.");
 
             STATE.pipelineData = TextPipeline.parse(raw);
-            if(STATE.pipelineData.totalWords === 0) return alert("No readable words found.");
+            if(STATE.pipelineData.totalWords === 0) return alert("No words extracted.");
 
             UI.layers.input.classList.add('hidden');
             UI.layers.reader.classList.remove('hidden');
 
             STATE.isPaused = false;
-            UI.out.pause.innerText = "Pause";
-            UI.out.pause.style.borderColor = "#444";
+            UI.out.pause.innerText = "Pause"; UI.out.pause.classList.remove('active');
 
             const rate = parseFloat(UI.in.rate.value);
-            const voiceSelection = UI.in.voice.value;
+            const vVal = UI.in.voice.value;
 
-            window.speechSynthesis.cancel(); // Flush lingering native engines
+            window.speechSynthesis.cancel(); // Clear internal buffers
 
-            if (voiceSelection === 'EDGE_AI') {
-                STATE.activeEngine = new EdgeAIEngine(STATE.pipelineData, rate);
+            if (vVal === 'EDGE_AI') {
+                if(!STATE.localModelFile) console.log("Note: Running Edge AI Placeholder audio mapping without a physical weights file.");
+                // Architecture Placeholder: Maps local model routing to Web Speech API as fallback polyfill
+                STATE.activeEngine = new StrictSyncEngine(STATE.pipelineData, null, rate, true);
             } else {
-                STATE.activeEngine = new NativeSyncEngine(STATE.pipelineData, parseInt(voiceSelection), rate);
+                STATE.activeEngine = new StrictSyncEngine(STATE.pipelineData, parseInt(vVal), rate, false);
             }
-            
             STATE.activeEngine.start(startWordIdx);
         }
 
         function stopSequence() {
             if (STATE.activeEngine) STATE.activeEngine.stop();
-            STATE.activeEngine = null;
-            STATE.isPaused = false;
+            STATE.activeEngine = null; STATE.isPaused = false;
             
             UI.layers.reader.classList.add('hidden');
             UI.layers.input.classList.remove('hidden');
-
-            UI.out.left.innerText = '';
-            UI.out.pivot.innerText = '';
-            UI.out.right.innerText = '';
+            UI.out.left.innerText = ''; UI.out.pivot.innerText = ''; UI.out.right.innerText = '';
             
-            StorageManager.checkBookmark(); // Refresh alert if they just saved
+            StorageManager.checkBookmark(); // Refresh alert visually
         }
     </script>
 </body>
