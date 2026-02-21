@@ -39,7 +39,7 @@
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             background: var(--bg-color); transition: opacity 0.4s ease, transform 0.4s ease;
         }
-        .hidden { opacity: 0; pointer-events: none; transform: scale(0.97); }
+        .hidden { opacity: 0; pointer-events: none; transform: scale(0.97); z-index: -1; }
 
         /* --- UI Card --- */
         .card {
@@ -55,13 +55,12 @@
         .field { display: flex; flex-direction: column; gap: 8px; }
         label { font-size: 0.75rem; color: #999; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
 
-        select, input[type="range"], input[type="text"], button {
+        select, input[type="range"], input[type="text"], input[type="number"], button {
             background: #0a0b0e; border: 1px solid var(--border); color: white;
             padding: 12px; border-radius: 8px; outline: none; transition: border-color 0.2s;
         }
-        select:focus, input[type="text"]:focus { border-color: var(--accent-color); }
+        select:focus, input:focus { border-color: var(--accent-color); }
 
-        /* --- Drop Zone --- */
         .drop-zone {
             border: 2px dashed var(--border); border-radius: 8px; padding: 25px;
             text-align: center; color: var(--text-muted); cursor: pointer; transition: all 0.2s; margin-bottom: 20px;
@@ -72,26 +71,39 @@
             width: 100%; height: 160px; background: #0a0b0e; border: 1px solid var(--border);
             color: #e2e8f0; padding: 15px; font-size: 15px; line-height: 1.6; border-radius: 8px; resize: none;
         }
-        textarea:focus { border-color: var(--accent-color); }
-
+        
         button.primary {
             width: 100%; padding: 16px; margin-top: 15px; background: var(--accent-color); color: #fff;
-            border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer;
-            text-transform: uppercase; letter-spacing: 1px;
+            border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; text-transform: uppercase; letter-spacing: 1px;
         }
         button.primary:hover { background: var(--accent-hover); }
-
-        #edge-panel {
-            background: #0a0b0e; border: 1px solid var(--accent-color); padding: 15px;
-            border-radius: 8px; margin-bottom: 20px; display: none;
-        }
-        .edge-active #edge-panel { display: block; }
-        #btn-local-file { background: transparent; color: var(--accent-color); cursor: pointer; border: 1px solid var(--accent-color); }
 
         #bookmark-alert {
             display: none; background: rgba(59,130,246,0.1); border: 1px solid var(--accent-color);
             padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;
         }
+
+        /* --- Structure Sidebar --- */
+        #sidebar {
+            position: fixed; top: 0; left: -320px; width: 320px; height: 100%;
+            background: var(--ui-card); border-right: 1px solid var(--border);
+            z-index: 100; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; flex-direction: column; box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+        }
+        #sidebar.open { left: 0; }
+        .sidebar-header {
+            padding: 20px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center; background: #0a0b0e;
+        }
+        .sidebar-header h3 { font-size: 1rem; font-weight: 600; color: white; text-transform: uppercase; letter-spacing: 1px; }
+        .close-btn { background: transparent; border: none; color: #888; font-size: 1.5rem; cursor: pointer; padding: 0 5px; }
+        .close-btn:hover { color: var(--pivot-color); }
+        .sidebar-content { flex: 1; overflow-y: auto; padding: 10px 0; }
+        .struct-item {
+            padding: 12px 20px; border-bottom: 1px solid #1a1c23; cursor: pointer; color: #aaa;
+            transition: 0.2s; font-size: 0.85rem; line-height: 1.4;
+        }
+        .struct-item:hover { background: rgba(59, 130, 246, 0.1); color: white; border-left: 3px solid var(--accent-color); }
 
         /* --- Reader Stage --- */
         .rsvp-stage {
@@ -111,12 +123,21 @@
         .c-pivot.is-num { color: #fff; font-weight: 400; }
 
         /* --- HUD --- */
-        .hud { position: absolute; bottom: 40px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 15px; }
-        .progress-text { font-family: var(--font-read); color: #888; font-size: 0.9rem; letter-spacing: 2px; }
+        .hud { position: absolute; bottom: 30px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 15px; }
+        
+        .hud-top-row { display: flex; align-items: center; gap: 15px; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 30px; border: 1px solid var(--border); backdrop-filter: blur(5px); }
+        
+        .jump-control { display: flex; align-items: center; gap: 8px; font-family: var(--font-read); font-size: 0.9rem; color: #888; }
+        .jump-control input { width: 70px; padding: 6px; text-align: center; font-family: var(--font-read); border-radius: 4px; background: #111; font-size: 0.9rem; }
+        .jump-control button { padding: 6px 12px; font-size: 0.8rem; text-transform: uppercase; font-weight: bold; background: #222; border-radius: 4px; cursor: pointer; }
+        .jump-control button:hover { background: var(--accent-color); color: white; border-color: var(--accent-color); }
+        
+        .hud-select { padding: 6px 10px; font-size: 0.85rem; border-radius: 6px; background: #111; max-width: 200px; }
+
         .hud-controls { display: flex; gap: 15px; }
         button.hud-btn {
             background: rgba(0,0,0,0.5); border: 1px solid #444; color: #aaa; padding: 12px 30px;
-            border-radius: 30px; cursor: pointer; text-transform: uppercase; font-weight: 600; letter-spacing: 1px;
+            border-radius: 30px; cursor: pointer; text-transform: uppercase; font-weight: 600; letter-spacing: 1px; backdrop-filter: blur(5px);
         }
         button.hud-btn:hover { border-color: white; color: white; }
         button.hud-btn.active { border-color: var(--accent-color); color: var(--accent-color); }
@@ -143,9 +164,7 @@
             <div class="grid-2">
                 <div class="field">
                     <label>Synthesis Engine</label>
-                    <select id="sel-voice">
-                        <option value="EDGE_AI">Edge AI (Local LLM Placeholder)</option>
-                    </select>
+                    <select id="sel-voice"><option value="EDGE_AI">Edge AI (Local LLM Placeholder)</option></select>
                 </div>
                 <div class="field">
                     <label>Pacing Rate</label>
@@ -154,13 +173,6 @@
                         <span id="disp-rate" style="font-size:0.85rem; width:25px; color:#aaa;">1.0</span>
                     </div>
                 </div>
-            </div>
-
-            <!-- Edge AI Config Panel -->
-            <div id="edge-panel">
-                <label style="color:white; display:block; margin-bottom:10px;">Edge Inference Setup</label>
-                <button id="btn-local-file" style="width:100%; padding:10px; margin-bottom:10px;">Map Local Weights (.onnx / .bin)</button>
-                <div id="disp-local-path" style="font-size:0.75rem; color:#888; font-family:var(--font-read);">Status: Waiting for file mapping...</div>
             </div>
 
             <textarea id="txt-input" placeholder="Extracted text will appear here. Or paste your own content manually."></textarea>
@@ -172,13 +184,36 @@
 
     <!-- RSVP READER INTERFACE -->
     <div id="layer-reader" class="layer hidden">
+        
+        <!-- Collapsible Structure Sidebar -->
+        <div id="sidebar">
+            <div class="sidebar-header">
+                <h3>Document Structure</h3>
+                <button id="btn-close-sidebar" class="close-btn">&times;</button>
+            </div>
+            <div class="sidebar-content" id="sidebar-content">
+                <!-- Populated dynamically -->
+            </div>
+        </div>
+
         <div class="rsvp-stage">
             <div class="word-chunk c-left" id="r-left"></div>
             <div class="word-chunk c-pivot" id="r-pivot"></div>
             <div class="word-chunk c-right" id="r-right"></div>
         </div>
+        
         <div class="hud">
-            <div class="progress-text" id="hud-progress">WORD 0 / 0 | ENGINE: SYSTEM</div>
+            <!-- Navigation & Voice Control Row -->
+            <div class="hud-top-row">
+                <button id="btn-toggle-sidebar" class="hud-btn" style="padding:6px 12px; font-size:1.2rem;" title="Contents">☰</button>
+                <div class="jump-control">
+                    Word <input type="number" id="inp-jump" min="1" value="1"> / <span id="hud-total">0</span>
+                    <button id="btn-jump">Go</button>
+                </div>
+                <select id="sel-hud-voice" class="hud-select" title="Change Voice On-the-Fly"></select>
+            </div>
+
+            <!-- Standard Controls -->
             <div class="hud-controls">
                 <button id="btn-pause" class="hud-btn">Pause</button>
                 <button id="btn-bookmark" class="hud-btn">Bookmark & Exit</button>
@@ -190,10 +225,7 @@
     <script>
         /**
          * ReadSync | Enterprise Architecture
-         * Features: 
-         * - Multi-format File Ingestion 
-         * - Fault-tolerant voice loader
-         * - Mutex-Locked Hybrid Audio-Visual Sync (Fixes Visual Flashbacks)
+         * Added Features: Structural Heuristics, Nav Sidebar, Manual Word Jump, Live Voice Switching.
          */
 
         if(window.pdfjsLib) window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
@@ -204,23 +236,23 @@
                 dropZone: document.getElementById('drop-zone'), fileInput: document.getElementById('file-upload'),
                 voice: document.getElementById('sel-voice'), rate: document.getElementById('rng-rate'), rateDisp: document.getElementById('disp-rate'),
                 text: document.getElementById('txt-input'), count: document.getElementById('cnt-char'), start: document.getElementById('btn-start'),
-                bookmarkAlert: document.getElementById('bookmark-alert'), btnResumeBookmark: document.getElementById('btn-resume-bookmark'),
-                mainCard: document.getElementById('main-card'), edgeBtn: document.getElementById('btn-local-file'), edgePathDisp: document.getElementById('disp-local-path')
+                bookmarkAlert: document.getElementById('bookmark-alert'), btnResumeBookmark: document.getElementById('btn-resume-bookmark')
             },
             out: {
                 left: document.getElementById('r-left'), pivot: document.getElementById('r-pivot'), right: document.getElementById('r-right'),
-                pause: document.getElementById('btn-pause'), bookmark: document.getElementById('btn-bookmark'), stop: document.getElementById('btn-stop'), progress: document.getElementById('hud-progress')
+                pause: document.getElementById('btn-pause'), bookmark: document.getElementById('btn-bookmark'), stop: document.getElementById('btn-stop'),
+                jumpInp: document.getElementById('inp-jump'), jumpBtn: document.getElementById('btn-jump'), totalWords: document.getElementById('hud-total'),
+                hudVoice: document.getElementById('sel-hud-voice'),
+                sidebar: document.getElementById('sidebar'), btnToggleSidebar: document.getElementById('btn-toggle-sidebar'), btnCloseSidebar: document.getElementById('btn-close-sidebar'), sidebarContent: document.getElementById('sidebar-content')
             }
         };
 
         const STATE = {
-            nativeVoicesReady: false,
             voices: [],
             activeEngine: null,
             pipelineData: null,
             currentWordGlobalIndex: 0,
-            isPaused: false,
-            localModelFile: null
+            isPaused: false
         };
 
         window.addEventListener('load', () => {
@@ -230,17 +262,13 @@
             StorageManager.checkBookmark();
         });
 
-        // --- File Routing & Setup ---
+        // --- File Routing ---
         function bindGlobalDragEvents() {
             ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
                 window.addEventListener(eventName, preventDefaults, false);
                 document.body.addEventListener(eventName, preventDefaults, false);
             });
             function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
-
-            UI.in.dropZone.addEventListener('dragenter', () => UI.in.dropZone.classList.add('dragover'));
-            UI.in.dropZone.addEventListener('dragover', () => UI.in.dropZone.classList.add('dragover'));
-            UI.in.dropZone.addEventListener('dragleave', () => UI.in.dropZone.classList.remove('dragover'));
             UI.in.dropZone.addEventListener('drop', (e) => {
                 UI.in.dropZone.classList.remove('dragover');
                 if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
@@ -249,23 +277,53 @@
             UI.in.fileInput.addEventListener('change', (e) => { if(e.target.files.length) handleFile(e.target.files[0]); });
         }
 
+        async function handleFile(file) {
+            UI.in.dropZone.innerHTML = `Extracting <span style="color:var(--accent-color)">${file.name}</span>...`;
+            let text = '';
+            try {
+                const ext = file.name.split('.').pop().toLowerCase();
+                if (ext === 'txt') text = await file.text();
+                else if (ext === 'pdf') {
+                    const pdf = await pdfjsLib.getDocument(await file.arrayBuffer()).promise;
+                    for(let i=1; i<=pdf.numPages; i++) {
+                        const page = await pdf.getPage(i);
+                        text += (await page.getTextContent()).items.map(it => it.str).join(' ') + '\n\n';
+                    }
+                } else if (ext === 'docx') text = (await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() })).value;
+                else if (ext === 'epub') {
+                    const zip = await JSZip.loadAsync(file);
+                    for (const filename of Object.keys(zip.files)) {
+                        if (filename.match(/\.(html|xhtml|htm)$/i)) {
+                            const doc = new DOMParser().parseFromString(await zip.files[filename].async('string'), 'text/html');
+                            text += doc.body.textContent + '\n\n';
+                        }
+                    }
+                } else throw new Error('Format');
+                
+                UI.in.text.value = text.trim();
+                UI.in.count.innerText = UI.in.text.value.length;
+            } catch (error) { alert("Extraction failed. Unsupported or protected format."); }
+            UI.in.dropZone.innerHTML = "Drag & Drop Document Here (PDF, DOCX, EPUB, TXT)<br><span style='font-size:0.8rem; opacity:0.6;'>Or click to browse</span>";
+        }
+
+        // --- Voice Loader (Syncs both menus) ---
         function initVoiceLoader() {
             const loadNative = () => {
                 let voices = window.speechSynthesis.getVoices();
                 if(voices.length === 0) return; 
-                STATE.nativeVoicesReady = true;
                 STATE.voices = voices.sort((a,b) => (b.name.includes('Google')||b.name.includes('Natural')) - (a.name.includes('Google')||a.name.includes('Natural')));
                 
-                UI.in.voice.innerHTML = '<optgroup label="Edge Pipeline"><option value="EDGE_AI">Edge AI (Local LLM Placeholder)</option></optgroup>';
-                const group = document.createElement('optgroup'); group.label = "Native System Voices";
-                STATE.voices.forEach((v, i) => {
-                    const opt = document.createElement('option'); opt.value = i;
-                    opt.textContent = `${(v.name.includes('Google') || v.name.includes('Natural')) ? '★ ' : ''}${v.name}`;
-                    if(i === 0) opt.selected = true;
-                    group.appendChild(opt);
-                });
-                UI.in.voice.appendChild(group);
-                UI.in.mainCard.classList.remove('edge-active'); 
+                const buildOptions = () => {
+                    let html = '<optgroup label="Edge Pipeline"><option value="EDGE_AI">Edge AI (Local LLM)</option></optgroup>';
+                    html += '<optgroup label="Native System Voices">';
+                    STATE.voices.forEach((v, i) => {
+                        html += `<option value="${i}" ${i===0?'selected':''}>${(v.name.includes('Google') || v.name.includes('Natural')) ? '★ ' : ''}${v.name}</option>`;
+                    });
+                    html += '</optgroup>';
+                    return html;
+                };
+                UI.in.voice.innerHTML = buildOptions();
+                UI.out.hudVoice.innerHTML = buildOptions();
             };
             loadNative();
             if(window.speechSynthesis.onvoiceschanged !== undefined) window.speechSynthesis.onvoiceschanged = loadNative;
@@ -281,78 +339,116 @@
             UI.out.stop.addEventListener('click', stopSequence);
             UI.out.bookmark.addEventListener('click', () => { StorageManager.saveBookmark(); stopSequence(); });
 
-            UI.in.voice.addEventListener('change', (e) => {
-                if(e.target.value === 'EDGE_AI') UI.in.mainCard.classList.add('edge-active');
-                else UI.in.mainCard.classList.remove('edge-active');
-            });
+            // Sidebar Toggles
+            UI.out.btnToggleSidebar.addEventListener('click', () => UI.out.sidebar.classList.add('open'));
+            UI.out.btnCloseSidebar.addEventListener('click', () => UI.out.sidebar.classList.remove('open'));
 
-            UI.in.edgeBtn.addEventListener('click', async () => {
-                try {
-                    const [fileHandle] = await window.showOpenFilePicker({ types: [{ description: 'AI Model Weights', accept: { '*/*': ['.onnx', '.bin'] } }] });
-                    STATE.localModelFile = await fileHandle.getFile();
-                    UI.in.edgePathDisp.innerText = `Mapped: ${STATE.localModelFile.name}`;
-                    UI.in.edgePathDisp.style.color = 'var(--accent-color)';
-                } catch(err) { console.log("File map cancelled."); }
-            });
-        }
+            // Jump Word Logic
+            UI.out.jumpBtn.addEventListener('click', handleJumpInput);
+            UI.out.jumpInp.addEventListener('keypress', (e) => { if(e.key === 'Enter') handleJumpInput(); });
 
-        async function handleFile(file) {
-            UI.in.dropZone.innerHTML = `Extracting <span style="color:var(--accent-color)">${file.name}</span>...`;
-            let text = '';
-            try {
-                const ext = file.name.split('.').pop().toLowerCase();
-                if (ext === 'txt') text = await file.text();
-                else if (ext === 'pdf') {
-                    const pdf = await pdfjsLib.getDocument(await file.arrayBuffer()).promise;
-                    for(let i=1; i<=pdf.numPages; i++) {
-                        const page = await pdf.getPage(i);
-                        text += (await page.getTextContent()).items.map(it => it.str).join(' ') + ' ';
-                    }
-                } else if (ext === 'docx') text = (await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() })).value;
-                else if (ext === 'epub') {
-                    const zip = await JSZip.loadAsync(file);
-                    for (const filename of Object.keys(zip.files)) {
-                        if (filename.match(/\.(html|xhtml|htm)$/i)) {
-                            const doc = new DOMParser().parseFromString(await zip.files[filename].async('string'), 'text/html');
-                            text += doc.body.textContent + '\n';
-                        }
-                    }
-                } else throw new Error('Format');
+            // On-The-Fly Voice Switching
+            UI.out.hudVoice.addEventListener('change', (e) => {
+                if(!STATE.activeEngine) return;
+                const vVal = e.target.value;
+                const isEdge = (vVal === 'EDGE_AI');
+                STATE.activeEngine.changeVoice(isEdge ? null : parseInt(vVal), isEdge);
                 
-                UI.in.text.value = text.replace(/\s+/g, ' ').trim();
-                UI.in.count.innerText = UI.in.text.value.length;
-            } catch (error) { alert("Extraction failed. Unsupported or protected format."); }
-            UI.in.dropZone.innerHTML = "Drag & Drop Document Here (PDF, DOCX, EPUB, TXT)<br><span style='font-size:0.8rem; opacity:0.6;'>Or click to browse</span>";
+                // If it's paused, user expects to hear the new voice when they click resume. 
+                // The cancel clears the buffer. Resume will automatically generate the new utterance.
+                if(STATE.isPaused) { window.speechSynthesis.cancel(); }
+                else {
+                    // If it's actively playing, force a pause/resume cycle to swap the voice seamlessly.
+                    STATE.activeEngine.pause();
+                    setTimeout(() => { window.speechSynthesis.cancel(); STATE.activeEngine.resume(); }, 50);
+                }
+            });
         }
 
+        function handleJumpInput() {
+            if(!STATE.activeEngine) return;
+            let target = parseInt(UI.out.jumpInp.value) - 1; // Convert to 0-index
+            if(isNaN(target)) return;
+            target = Math.max(0, Math.min(target, STATE.pipelineData.totalWords - 1));
+            STATE.activeEngine.jumpTo(target);
+        }
+
+        // --- Document Structure Parsing Pipeline ---
         class TextPipeline {
             static parse(rawText) {
                 const clauses = [];
-                const rawClauses = rawText.replace(/\s+/g, ' ').trim().match(/[^.,!?;:]+[.,!?;:]?/g) || [rawText];
-                
+                const structure = [];
                 let globalIdx = 0;
-                rawClauses.forEach(text => {
-                    text = text.trim(); if(!text) return;
-                    const words = [];
-                    const wordRegex = /\S+/g;
-                    let match;
-                    while ((match = wordRegex.exec(text)) !== null) {
-                        words.push({
-                            raw: match[0], clean: match[0].replace(/[.,;:"!?)(\]\[}]/g, ''),
-                            charStart: match.index, charEnd: match.index + match[0].length, globalIdx: globalIdx++
-                        });
+
+                // Pre-process: split by distinct blocks/paragraphs for heuristics
+                const blocks = rawText.split(/\n+/);
+
+                blocks.forEach(block => {
+                    const cleanBlock = block.trim();
+                    if (!cleanBlock) return;
+
+                    // Heuristics for Headings / Chapters
+                    const isChapter = /^(chapter|section|part)\s+\d+/i.test(cleanBlock);
+                    const isShortUpper = cleanBlock.length < 60 && cleanBlock === cleanBlock.toUpperCase() && cleanBlock.match(/[A-Z]/);
+                    const isNumberedHeading = /^\d+(\.\d+)*\s+[A-Z]/.test(cleanBlock) && cleanBlock.length < 80;
+
+                    if (isChapter || isShortUpper || isNumberedHeading) {
+                        const title = cleanBlock.length > 35 ? cleanBlock.substring(0, 35) + '...' : cleanBlock;
+                        structure.push({ title, wordIdx: globalIdx });
+                    } else if (structure.length === 0 && globalIdx === 0) {
+                        structure.push({ title: "Beginning", wordIdx: 0 }); // Fallback top node
                     }
-                    if(words.length) clauses.push({ text, words });
+
+                    // Strict clause chunking
+                    const rawClauses = cleanBlock.replace(/\s+/g, ' ').match(/[^.,!?;:]+[.,!?;:]?/g) || [cleanBlock];
+                    
+                    rawClauses.forEach(text => {
+                        text = text.trim(); if(!text) return;
+                        const words = [];
+                        const wordRegex = /\S+/g;
+                        let match;
+                        while ((match = wordRegex.exec(text)) !== null) {
+                            words.push({
+                                raw: match[0], clean: match[0].replace(/[.,;:"!?)(\]\[}]/g, ''),
+                                charStart: match.index, charEnd: match.index + match[0].length, globalIdx: globalIdx++
+                            });
+                        }
+                        if(words.length) clauses.push({ text, words });
+                    });
                 });
-                return { clauses, totalWords: globalIdx };
+                
+                // Polyfill structure if text lacked semantic headings
+                if (structure.length <= 1 && globalIdx > 500) {
+                    for(let i = 500; i < globalIdx; i += 500) structure.push({ title: `Segment near word ${i}`, wordIdx: i });
+                }
+
+                return { clauses, totalWords: globalIdx, structure };
             }
+        }
+
+        function buildSidebar() {
+            UI.out.sidebarContent.innerHTML = '';
+            STATE.pipelineData.structure.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'struct-item';
+                div.innerText = item.title;
+                div.onclick = () => {
+                    UI.out.jumpInp.value = item.wordIdx + 1;
+                    handleJumpInput();
+                    UI.out.sidebar.classList.remove('open'); // Auto close on mobile/desktop
+                };
+                UI.out.sidebarContent.appendChild(div);
+            });
         }
 
         function renderWord(wordObj) {
             if (!wordObj) return;
             STATE.currentWordGlobalIndex = wordObj.globalIdx;
-            const engStr = UI.in.voice.value === 'EDGE_AI' ? 'EDGE AI' : 'SYSTEM';
-            UI.out.progress.innerText = `WORD ${wordObj.globalIdx + 1} / ${STATE.pipelineData.totalWords} | ENGINE: ${engStr}`;
+            
+            // Sync HUD Input (only if user isn't actively typing in it)
+            if(document.activeElement !== UI.out.jumpInp) {
+                UI.out.jumpInp.value = wordObj.globalIdx + 1;
+            }
 
             const displayToken = wordObj.clean;
             if (!displayToken) return; 
@@ -376,7 +472,7 @@
             UI.out.right.innerText = displayToken.substring(idx + 1);
         }
 
-        // --- 4. STRICT MUTEX SYNC ENGINE ---
+        // --- STRICT MUTEX ENGINE w/ JUMP & VOICE SWITCHING ---
         class StrictSyncEngine {
             constructor(pipelineData, voiceIndex, rate, isEdgePlaceholder = false) {
                 this.clauses = pipelineData.clauses;
@@ -386,18 +482,42 @@
                 this.currentClauseIdx = 0;
                 this.isActive = false;
                 this.timer = null;
-                
-                // MUTEX FLAG: Once a true boundary is detected, this disables Math Timers forever to prevent flickering.
                 this.engineSupportsBoundaries = false; 
             }
 
             start(startWordIdx = 0) {
                 this.isActive = true;
-                this.currentClauseIdx = Math.max(0, this.clauses.findIndex(c => c.words.some(w => w.globalIdx >= startWordIdx)));
-                this.playClause();
+                this.jumpTo(startWordIdx, false); // start handles initial routing
             }
 
-            playClause() {
+            jumpTo(globalWordIdx, requireRestart = true) {
+                if(requireRestart) {
+                    this.pause();
+                    window.speechSynthesis.cancel();
+                    if(this.timer) clearInterval(this.timer);
+                    this.engineSupportsBoundaries = false; // Reset mutex to prevent ghost callbacks
+                }
+
+                this.currentClauseIdx = Math.max(0, this.clauses.findIndex(c => c.words.some(w => w.globalIdx >= globalWordIdx)));
+                
+                if(STATE.isPaused) {
+                    // Just render the target word visually to confirm the jump worked, wait for resume
+                    if(this.clauses[this.currentClauseIdx]) {
+                        const targetWord = this.clauses[this.currentClauseIdx].words.find(w => w.globalIdx >= globalWordIdx) || this.clauses[this.currentClauseIdx].words[0];
+                        renderWord(targetWord);
+                    }
+                } else {
+                    // Play immediately but pass the specific word offset so we don't re-read the start of the clause visually
+                    this.playClause(globalWordIdx);
+                }
+            }
+
+            changeVoice(voiceIndex, isEdge) {
+                this.voiceIndex = voiceIndex;
+                this.isEdge = isEdge;
+            }
+
+            playClause(startAtGlobalIdx = null) {
                 if (!this.isActive || STATE.isPaused) return;
                 if (this.currentClauseIdx >= this.clauses.length) return stopSequence();
 
@@ -406,17 +526,20 @@
                 if (!this.isEdge && STATE.voices[this.voiceIndex]) utt.voice = STATE.voices[this.voiceIndex];
                 utt.rate = this.rate;
 
+                // Determine visual start offset if jumping mid-clause
                 let currentVisualIdx = 0;
+                if(startAtGlobalIdx !== null) {
+                    currentVisualIdx = clause.words.findIndex(w => w.globalIdx >= startAtGlobalIdx);
+                    if(currentVisualIdx === -1) currentVisualIdx = 0;
+                }
+
                 const wpm = 220 * this.rate;
                 const msPerWord = 60000 / wpm;
 
                 utt.onstart = () => {
-                    currentVisualIdx = 0;
-                    renderWord(clause.words[0]);
-                    
+                    renderWord(clause.words[currentVisualIdx]);
                     if(this.timer) clearInterval(this.timer);
                     
-                    // Only run the Math Timer if the voice hasn't proven it supports exact boundaries
                     if (!this.engineSupportsBoundaries || this.isEdge) {
                         this.timer = setInterval(() => {
                             if(STATE.isPaused) return;
@@ -430,15 +553,11 @@
 
                 utt.onboundary = (e) => {
                     if (e.name === 'word') {
-                        // MUTEX LOCK: Voice supports precise sync! Kill the Math timer forever to prevent Race Conditions.
                         if (!this.engineSupportsBoundaries) {
                             this.engineSupportsBoundaries = true;
                             if(this.timer) clearInterval(this.timer);
                         }
-                        
                         const exactIdx = clause.words.findIndex(w => e.charIndex >= w.charStart && e.charIndex < w.charEnd);
-                        
-                        // STRICT MONOTONIC ADVANCEMENT: Impossible to flash backward
                         if (exactIdx > currentVisualIdx) {
                             currentVisualIdx = exactIdx;
                             renderWord(clause.words[currentVisualIdx]);
@@ -471,7 +590,7 @@
             }
         }
 
-        // --- Application State Control ---
+        // --- Application Control ---
         const StorageManager = {
             saveBookmark() {
                 if(!STATE.pipelineData) return;
@@ -479,17 +598,13 @@
                 localStorage.setItem('ReadSync_Save', JSON.stringify(data));
                 alert("Session saved locally. You can resume later.");
             },
-            checkBookmark() {
-                if(localStorage.getItem('ReadSync_Save')) UI.in.bookmarkAlert.style.display = 'block';
-            },
+            checkBookmark() { if(localStorage.getItem('ReadSync_Save')) UI.in.bookmarkAlert.style.display = 'block'; },
             loadBookmark() {
                 const data = JSON.parse(localStorage.getItem('ReadSync_Save'));
                 if(!data) return;
                 UI.in.text.value = data.text;
                 UI.in.rate.value = data.rate; UI.in.rateDisp.innerText = data.rate;
                 UI.in.voice.value = data.voice;
-                if(data.voice === 'EDGE_AI') UI.in.mainCard.classList.add('edge-active');
-                
                 UI.in.bookmarkAlert.style.display = 'none';
                 startSequence(data.wordIdx);
             }
@@ -513,6 +628,9 @@
             STATE.pipelineData = TextPipeline.parse(raw);
             if(STATE.pipelineData.totalWords === 0) return alert("No words extracted.");
 
+            UI.out.totalWords.innerText = STATE.pipelineData.totalWords;
+            buildSidebar(); // Generate the Structure UI
+
             UI.layers.input.classList.add('hidden');
             UI.layers.reader.classList.remove('hidden');
 
@@ -521,15 +639,12 @@
 
             const rate = parseFloat(UI.in.rate.value);
             const vVal = UI.in.voice.value;
+            UI.out.hudVoice.value = vVal; // Sync HUD dropdown
 
             window.speechSynthesis.cancel(); 
 
-            if (vVal === 'EDGE_AI') {
-                if(!STATE.localModelFile) console.log("Note: Running Edge AI Pipeline mapping without a physical weights file.");
-                STATE.activeEngine = new StrictSyncEngine(STATE.pipelineData, null, rate, true);
-            } else {
-                STATE.activeEngine = new StrictSyncEngine(STATE.pipelineData, parseInt(vVal), rate, false);
-            }
+            const isEdge = (vVal === 'EDGE_AI');
+            STATE.activeEngine = new StrictSyncEngine(STATE.pipelineData, isEdge ? null : parseInt(vVal), rate, isEdge);
             STATE.activeEngine.start(startWordIdx);
         }
 
@@ -539,6 +654,7 @@
             
             UI.layers.reader.classList.add('hidden');
             UI.layers.input.classList.remove('hidden');
+            UI.out.sidebar.classList.remove('open');
             UI.out.left.innerText = ''; UI.out.pivot.innerText = ''; UI.out.right.innerText = '';
             
             StorageManager.checkBookmark(); 
