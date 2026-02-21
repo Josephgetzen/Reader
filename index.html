@@ -87,6 +87,11 @@
             display: none; background: rgba(59,130,246,0.1); border: 1px solid var(--accent-color);
             padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;
         }
+        #btn-resume-bookmark {
+            width: 100%; padding: 10px; margin-top: 10px; background: var(--accent-color); color: white; 
+            border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-transform: uppercase;
+        }
+        #btn-resume-bookmark:hover { background: var(--accent-hover); }
 
         /* --- Original Text Context Underlay --- */
         #context-layer {
@@ -179,6 +184,11 @@
         <div class="card" id="main-card">
             <h1>Read<span>Sync</span></h1>
             
+            <div id="bookmark-alert">
+                <p style="color:white; margin-bottom:5px; font-weight:600;">Saved Session Found</p>
+                <button id="btn-resume-bookmark">Resume Where You Left Off</button>
+            </div>
+
             <div class="drop-zone" id="drop-zone">
                 Drag & Drop Document Here (PDF, DOCX, EPUB, TXT)
                 <br><span style="font-size:0.8rem; opacity:0.6;">Or click to browse</span>
@@ -250,6 +260,7 @@
 
             <div class="hud-controls">
                 <button id="btn-pause" class="hud-btn">Pause</button>
+                <button id="btn-bookmark" class="hud-btn">Bookmark & Exit</button>
                 <button id="btn-stop" class="hud-btn" style="border-color:var(--pivot-color); color:var(--pivot-color);">Stop</button>
             </div>
         </div>
@@ -258,7 +269,8 @@
     <script>
         /**
          * ReadSync | Enterprise Architecture
-         * Added Features: Monotonic Lexer Bounds, Hardware-Accel V-Sync Scroll, Skip-Word Rescue
+         * Features: Monotonic Lexer Bounds, V-Sync Context Scroll, Zen Fullscreen, 
+         * Bookmark Persistence & Restored Sidebar Toggles.
          */
 
         if(window.pdfjsLib) window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
@@ -268,11 +280,12 @@
             in: {
                 dropZone: document.getElementById('drop-zone'), fileInput: document.getElementById('file-upload'),
                 voice: document.getElementById('sel-voice'), rate: document.getElementById('rng-rate'), rateDisp: document.getElementById('disp-rate'),
-                text: document.getElementById('txt-input'), count: document.getElementById('cnt-char'), start: document.getElementById('btn-start')
+                text: document.getElementById('txt-input'), count: document.getElementById('cnt-char'), start: document.getElementById('btn-start'),
+                bookmarkAlert: document.getElementById('bookmark-alert'), btnResumeBookmark: document.getElementById('btn-resume-bookmark')
             },
             out: {
                 left: document.getElementById('r-left'), pivot: document.getElementById('r-pivot'), right: document.getElementById('r-right'),
-                pause: document.getElementById('btn-pause'), stop: document.getElementById('btn-stop'),
+                pause: document.getElementById('btn-pause'), bookmark: document.getElementById('btn-bookmark'), stop: document.getElementById('btn-stop'),
                 jumpInp: document.getElementById('inp-jump'), jumpBtn: document.getElementById('btn-jump'), totalWords: document.getElementById('hud-total'),
                 hudVoice: document.getElementById('sel-hud-voice'), btnFullscreen: document.getElementById('btn-fullscreen'),
                 sidebar: document.getElementById('sidebar'), btnToggleSidebar: document.getElementById('btn-toggle-sidebar'), btnCloseSidebar: document.getElementById('btn-close-sidebar'), sidebarContent: document.getElementById('sidebar-content'),
@@ -299,7 +312,42 @@
             initVoiceLoader();
             bindGlobalDragEvents();
             bindUIEvents();
+            StorageManager.checkBookmark();
         });
+
+        // --- Persistent Storage Manager ---
+        const StorageManager = {
+            saveBookmark() {
+                if(!STATE.pipelineData) return;
+                const data = { 
+                    text: UI.in.text.value, 
+                    wordIdx: STATE.currentWordGlobalIndex, 
+                    rate: UI.in.rate.value, 
+                    voice: UI.in.voice.value 
+                };
+                localStorage.setItem('ReadSync_Save', JSON.stringify(data));
+                alert("Session Bookmarked! You can resume from this word later.");
+            },
+            checkBookmark() {
+                if(localStorage.getItem('ReadSync_Save')) {
+                    UI.in.bookmarkAlert.style.display = 'block';
+                } else {
+                    UI.in.bookmarkAlert.style.display = 'none';
+                }
+            },
+            loadBookmark() {
+                const data = JSON.parse(localStorage.getItem('ReadSync_Save'));
+                if(!data) return;
+                UI.in.text.value = data.text;
+                UI.in.count.innerText = data.text.length;
+                UI.in.rate.value = data.rate; 
+                UI.in.rateDisp.innerText = data.rate;
+                UI.in.voice.value = data.voice;
+                
+                UI.in.bookmarkAlert.style.display = 'none';
+                startSequence(data.wordIdx);
+            }
+        };
 
         // --- Keyboard Controls & Zen Mode ---
         window.addEventListener('keydown', (e) => {
@@ -414,16 +462,19 @@
             UI.in.rate.addEventListener('input', e => UI.in.rateDisp.innerText = parseFloat(e.target.value).toFixed(1));
             UI.in.text.addEventListener('input', e => UI.in.count.innerText = e.target.value.length);
             UI.in.start.addEventListener('click', () => startSequence(0));
+            UI.in.btnResumeBookmark.addEventListener('click', () => StorageManager.loadBookmark());
 
             UI.out.pause.addEventListener('click', togglePause);
             UI.out.stop.addEventListener('click', stopSequence);
+            UI.out.bookmark.addEventListener('click', () => { StorageManager.saveBookmark(); stopSequence(); });
 
             UI.out.btnFullscreen.addEventListener('click', () => {
                 if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(err => console.log(err));
                 else document.exitFullscreen();
             });
 
-            UI.out.btnToggleSidebar.addEventListener('click', () => UI.out.sidebar.classList.add('open'));
+            // Restored correct toggle behavior for the sidebar
+            UI.out.btnToggleSidebar.addEventListener('click', () => UI.out.sidebar.classList.toggle('open'));
             UI.out.btnCloseSidebar.addEventListener('click', () => UI.out.sidebar.classList.remove('open'));
 
             UI.out.jumpBtn.addEventListener('click', handleJumpInput);
@@ -583,7 +634,7 @@
             
             if(document.activeElement !== UI.out.jumpInp) UI.out.jumpInp.value = wordObj.globalIdx + 1;
 
-            // Safe Hardware-Accel V-Sync Scrolling ('auto' prevents main thread locking queues)
+            // Safe Hardware-Accel V-Sync Scrolling
             const contextSpan = document.getElementById(`uw-${wordObj.globalIdx}`);
             if(contextSpan) {
                 if(STATE.lastContextSpan) STATE.lastContextSpan.classList.remove('active-word');
@@ -696,7 +747,6 @@
                             if(this.timer) clearInterval(this.timer);
                         }
                         
-                        // Monotonic Lexer Bounds Checker
                         let exactIdx = currentVisualIdx;
                         for (let i = currentVisualIdx; i < clause.words.length; i++) {
                             if (e.charIndex >= (clause.words[i].clauseCharStart - 2)) exactIdx = i;
@@ -718,11 +768,10 @@
                         if(this.isActive && !STATE.isPaused) this.playClause();
                     };
 
-                    // Skip-Word Rescue: Ensures the final word renders even if native API dropped the boundary
                     if (currentVisualIdx < clause.words.length - 1) {
                         currentVisualIdx = clause.words.length - 1;
                         renderWord(clause.words[currentVisualIdx]);
-                        setTimeout(advanceClause, 150); // Grace period to perceive the final word
+                        setTimeout(advanceClause, 150); 
                     } else {
                         advanceClause();
                     }
@@ -787,6 +836,8 @@
             UI.out.contextLayer.classList.remove('active');
             UI.out.btnToggleContext.classList.remove('active');
             UI.out.left.innerText = ''; UI.out.pivot.innerText = ''; UI.out.right.innerText = '';
+            
+            StorageManager.checkBookmark(); 
         }
     </script>
 </body>
