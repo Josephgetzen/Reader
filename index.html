@@ -144,7 +144,7 @@
                 <div class="field">
                     <label>Synthesis Engine</label>
                     <select id="sel-voice">
-                        <option value="EDGE_AI">Edge AI (Local LLM)</option>
+                        <option value="EDGE_AI">Edge AI (Local LLM Placeholder)</option>
                     </select>
                 </div>
                 <div class="field">
@@ -190,13 +190,14 @@
     <script>
         /**
          * ReadSync | Enterprise Architecture
-         * Solves file drop navigation bugs, async voice loading bugs, and Google TTS drift.
+         * Features: 
+         * - Multi-format File Ingestion 
+         * - Fault-tolerant voice loader
+         * - Mutex-Locked Hybrid Audio-Visual Sync (Fixes Visual Flashbacks)
          */
 
-        // Ensure PDF Worker loads properly
         if(window.pdfjsLib) window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
-        // --- Core State ---
         const UI = {
             layers: { input: document.getElementById('layer-input'), reader: document.getElementById('layer-reader') },
             in: {
@@ -222,7 +223,6 @@
             localModelFile: null
         };
 
-        // --- Global Initialization ---
         window.addEventListener('load', () => {
             initVoiceLoader();
             bindGlobalDragEvents();
@@ -230,7 +230,7 @@
             StorageManager.checkBookmark();
         });
 
-        // 1. GLOBAL DRAG INTERCEPTOR (Fixes Page Crash on Drop)
+        // --- File Routing & Setup ---
         function bindGlobalDragEvents() {
             ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
                 window.addEventListener(eventName, preventDefaults, false);
@@ -249,34 +249,28 @@
             UI.in.fileInput.addEventListener('change', (e) => { if(e.target.files.length) handleFile(e.target.files[0]); });
         }
 
-        // 2. FAULT-TOLERANT VOICE LOADER (Fixes "Stuck" Dropdown)
         function initVoiceLoader() {
             const loadNative = () => {
                 let voices = window.speechSynthesis.getVoices();
-                if(voices.length === 0) return; // Keep waiting
-                
+                if(voices.length === 0) return; 
                 STATE.nativeVoicesReady = true;
                 STATE.voices = voices.sort((a,b) => (b.name.includes('Google')||b.name.includes('Natural')) - (a.name.includes('Google')||a.name.includes('Natural')));
                 
-                // Keep the Edge option, but append native
-                UI.in.voice.innerHTML = '<optgroup label="Edge Pipeline"><option value="EDGE_AI">Edge AI (Local LLM)</option></optgroup>';
+                UI.in.voice.innerHTML = '<optgroup label="Edge Pipeline"><option value="EDGE_AI">Edge AI (Local LLM Placeholder)</option></optgroup>';
                 const group = document.createElement('optgroup'); group.label = "Native System Voices";
                 STATE.voices.forEach((v, i) => {
                     const opt = document.createElement('option'); opt.value = i;
                     opt.textContent = `${(v.name.includes('Google') || v.name.includes('Natural')) ? '★ ' : ''}${v.name}`;
-                    if(i === 0) opt.selected = true; // Auto select best native
+                    if(i === 0) opt.selected = true;
                     group.appendChild(opt);
                 });
                 UI.in.voice.appendChild(group);
-                UI.in.mainCard.classList.remove('edge-active'); // Re-evaluate UI state
+                UI.in.mainCard.classList.remove('edge-active'); 
             };
-
-            // Try immediately, then listen
             loadNative();
             if(window.speechSynthesis.onvoiceschanged !== undefined) window.speechSynthesis.onvoiceschanged = loadNative;
         }
 
-        // 3. UI EVENT BINDINGS
         function bindUIEvents() {
             UI.in.rate.addEventListener('input', e => UI.in.rateDisp.innerText = parseFloat(e.target.value).toFixed(1));
             UI.in.text.addEventListener('input', e => UI.in.count.innerText = e.target.value.length);
@@ -287,13 +281,11 @@
             UI.out.stop.addEventListener('click', stopSequence);
             UI.out.bookmark.addEventListener('click', () => { StorageManager.saveBookmark(); stopSequence(); });
 
-            // Edge UI Toggle
             UI.in.voice.addEventListener('change', (e) => {
                 if(e.target.value === 'EDGE_AI') UI.in.mainCard.classList.add('edge-active');
                 else UI.in.mainCard.classList.remove('edge-active');
             });
 
-            // Edge AI Local File Mapping
             UI.in.edgeBtn.addEventListener('click', async () => {
                 try {
                     const [fileHandle] = await window.showOpenFilePicker({ types: [{ description: 'AI Model Weights', accept: { '*/*': ['.onnx', '.bin'] } }] });
@@ -304,7 +296,6 @@
             });
         }
 
-        // --- File Extraction Logic ---
         async function handleFile(file) {
             UI.in.dropZone.innerHTML = `Extracting <span style="color:var(--accent-color)">${file.name}</span>...`;
             let text = '';
@@ -334,11 +325,9 @@
             UI.in.dropZone.innerHTML = "Drag & Drop Document Here (PDF, DOCX, EPUB, TXT)<br><span style='font-size:0.8rem; opacity:0.6;'>Or click to browse</span>";
         }
 
-        // --- Text Pipeline Parsing ---
         class TextPipeline {
             static parse(rawText) {
                 const clauses = [];
-                // Group text into short semantic phrases. This keeps audio payloads small and tightens our timing math.
                 const rawClauses = rawText.replace(/\s+/g, ' ').trim().match(/[^.,!?;:]+[.,!?;:]?/g) || [rawText];
                 
                 let globalIdx = 0;
@@ -359,7 +348,6 @@
             }
         }
 
-        // --- Visual Renderer ---
         function renderWord(wordObj) {
             if (!wordObj) return;
             STATE.currentWordGlobalIndex = wordObj.globalIdx;
@@ -388,7 +376,7 @@
             UI.out.right.innerText = displayToken.substring(idx + 1);
         }
 
-        // --- 4. STRICT SYNC ENGINE (Bypasses Google Boundary Bug) ---
+        // --- 4. STRICT MUTEX SYNC ENGINE ---
         class StrictSyncEngine {
             constructor(pipelineData, voiceIndex, rate, isEdgePlaceholder = false) {
                 this.clauses = pipelineData.clauses;
@@ -398,6 +386,9 @@
                 this.currentClauseIdx = 0;
                 this.isActive = false;
                 this.timer = null;
+                
+                // MUTEX FLAG: Once a true boundary is detected, this disables Math Timers forever to prevent flickering.
+                this.engineSupportsBoundaries = false; 
             }
 
             start(startWordIdx = 0) {
@@ -415,34 +406,42 @@
                 if (!this.isEdge && STATE.voices[this.voiceIndex]) utt.voice = STATE.voices[this.voiceIndex];
                 utt.rate = this.rate;
 
-                // Sync Mathematics Base
-                // Assume standard reading speed of 220 WPM modified by rate
+                let currentVisualIdx = 0;
                 const wpm = 220 * this.rate;
                 const msPerWord = 60000 / wpm;
-                let wordIdxInClause = 0;
 
                 utt.onstart = () => {
-                    // Start internal visual timer completely independent of buggy onboundary hooks
+                    currentVisualIdx = 0;
                     renderWord(clause.words[0]);
-                    wordIdxInClause = 1;
                     
                     if(this.timer) clearInterval(this.timer);
-                    this.timer = setInterval(() => {
-                        if(STATE.isPaused) return;
-                        if(wordIdxInClause < clause.words.length) {
-                            renderWord(clause.words[wordIdxInClause]);
-                            wordIdxInClause++;
-                        }
-                    }, msPerWord);
+                    
+                    // Only run the Math Timer if the voice hasn't proven it supports exact boundaries
+                    if (!this.engineSupportsBoundaries || this.isEdge) {
+                        this.timer = setInterval(() => {
+                            if(STATE.isPaused) return;
+                            if(currentVisualIdx + 1 < clause.words.length) {
+                                currentVisualIdx++;
+                                renderWord(clause.words[currentVisualIdx]);
+                            }
+                        }, msPerWord);
+                    }
                 };
 
-                // If native boundary fires (like on Edge/Safari), we snap our index for flawless alignment
                 utt.onboundary = (e) => {
                     if (e.name === 'word') {
-                        const exactIdx = clause.words.findIndex(w => e.charIndex >= w.charStart && e.charIndex <= w.charEnd);
-                        if (exactIdx > -1) {
-                            wordIdxInClause = exactIdx + 1;
-                            renderWord(clause.words[exactIdx]);
+                        // MUTEX LOCK: Voice supports precise sync! Kill the Math timer forever to prevent Race Conditions.
+                        if (!this.engineSupportsBoundaries) {
+                            this.engineSupportsBoundaries = true;
+                            if(this.timer) clearInterval(this.timer);
+                        }
+                        
+                        const exactIdx = clause.words.findIndex(w => e.charIndex >= w.charStart && e.charIndex < w.charEnd);
+                        
+                        // STRICT MONOTONIC ADVANCEMENT: Impossible to flash backward
+                        if (exactIdx > currentVisualIdx) {
+                            currentVisualIdx = exactIdx;
+                            renderWord(clause.words[currentVisualIdx]);
                         }
                     }
                 };
@@ -462,7 +461,6 @@
             
             resume() { 
                 window.speechSynthesis.resume(); 
-                // If the native API dropped the utterance completely on pause (known browser bug), restart clause
                 if(!window.speechSynthesis.speaking) this.playClause(); 
             }
             
@@ -473,7 +471,7 @@
             }
         }
 
-        // --- Controllers & Persistence ---
+        // --- Application State Control ---
         const StorageManager = {
             saveBookmark() {
                 if(!STATE.pipelineData) return;
@@ -524,11 +522,10 @@
             const rate = parseFloat(UI.in.rate.value);
             const vVal = UI.in.voice.value;
 
-            window.speechSynthesis.cancel(); // Clear internal buffers
+            window.speechSynthesis.cancel(); 
 
             if (vVal === 'EDGE_AI') {
-                if(!STATE.localModelFile) console.log("Note: Running Edge AI Placeholder audio mapping without a physical weights file.");
-                // Architecture Placeholder: Maps local model routing to Web Speech API as fallback polyfill
+                if(!STATE.localModelFile) console.log("Note: Running Edge AI Pipeline mapping without a physical weights file.");
                 STATE.activeEngine = new StrictSyncEngine(STATE.pipelineData, null, rate, true);
             } else {
                 STATE.activeEngine = new StrictSyncEngine(STATE.pipelineData, parseInt(vVal), rate, false);
@@ -544,7 +541,7 @@
             UI.layers.input.classList.remove('hidden');
             UI.out.left.innerText = ''; UI.out.pivot.innerText = ''; UI.out.right.innerText = '';
             
-            StorageManager.checkBookmark(); // Refresh alert visually
+            StorageManager.checkBookmark(); 
         }
     </script>
 </body>
