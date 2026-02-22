@@ -269,7 +269,7 @@
     <script>
         /**
          * ReadSync | Enterprise Architecture
-         * Added Fix: TTS Hyphen Masking Engine & Exact Title Extraction
+         * Added Fix: TTS Ghost-Event Mutex Isolation & Perfect Clause Slicing
          */
 
         if(window.pdfjsLib) window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
@@ -325,7 +325,7 @@
                     voice: UI.in.voice.value 
                 };
                 localStorage.setItem('ReadSync_Save', JSON.stringify(data));
-                alert("Session Bookmarked! You can resume from this word later.");
+                alert("Session Bookmarked! You can resume from this exact word later.");
             },
             checkBookmark() {
                 if(localStorage.getItem('ReadSync_Save')) UI.in.bookmarkAlert.style.display = 'block';
@@ -341,7 +341,7 @@
                 UI.in.voice.value = data.voice;
                 
                 UI.in.bookmarkAlert.style.display = 'none';
-                startSequence(data.wordIdx);
+                startSequence(data.wordIdx); // startSequence inherently calls jumpTo(x, true)
             }
         };
 
@@ -372,7 +372,9 @@
                 clearTimeout(UI.out.skipToast.timer);
                 UI.out.skipToast.timer = setTimeout(() => UI.out.skipToast.classList.remove('show'), 600);
 
-                STATE.activeEngine.jumpTo(targetIdx, true);
+                // Auto-resume if it was already playing, otherwise stay paused.
+                const wasPlaying = !STATE.isPaused;
+                STATE.activeEngine.jumpTo(targetIdx, wasPlaying);
             }
         });
 
@@ -441,7 +443,7 @@
                 if(voices.length === 0) return; 
                 STATE.voices = voices.sort((a,b) => (b.name.includes('Google')||b.name.includes('Natural')) - (a.name.includes('Google')||a.name.includes('Natural')));
                 const buildOptions = () => {
-                    let html = '<optgroup label="Edge Pipeline"><option value="EDGE_AI">Edge AI (Local LLM)</option></optgroup>';
+                    let html = '<optgroup label="Edge Pipeline"><option value="EDGE_AI">Edge AI (Local LLM Placeholder)</option></optgroup>';
                     html += '<optgroup label="Native System Voices">';
                     STATE.voices.forEach((v, i) => { html += `<option value="${i}" ${i===0?'selected':''}>${(v.name.includes('Google') || v.name.includes('Natural')) ? '★ ' : ''}${v.name}</option>`; });
                     html += '</optgroup>';
@@ -495,8 +497,8 @@
                 const isEdge = (vVal === 'EDGE_AI');
                 STATE.activeEngine.changeVoice(isEdge ? null : parseInt(vVal), isEdge);
                 
-                if(STATE.isPaused) window.speechSynthesis.cancel();
-                else { STATE.activeEngine.pause(); setTimeout(() => { window.speechSynthesis.cancel(); STATE.activeEngine.resume(); }, 50); }
+                // Force a jump to current word to cleanly instantiate the new voice mid-stream
+                STATE.activeEngine.jumpTo(STATE.currentWordGlobalIndex, !STATE.isPaused);
             });
         }
 
@@ -505,7 +507,8 @@
             let target = parseInt(UI.out.jumpInp.value) - 1; 
             if(isNaN(target)) return;
             target = Math.max(0, Math.min(target, STATE.pipelineData.totalWords - 1));
-            STATE.activeEngine.jumpTo(target);
+            // User requested that manually using 'Go' button explicitly pauses the stream.
+            STATE.activeEngine.jumpTo(target, false);
         }
 
         // --- Text Pipeline (Dual-Index Lexer w/ Hyphen Parsing) ---
@@ -515,7 +518,6 @@
                 const structure = [];
                 let globalIdx = 0;
                 
-                // Matches non-whitespace and non-dash characters (safely parsing hyphens as word delimiters)
                 const wordRegex = /[^\s\-—–]+/g; 
                 let match;
                 let currentClauseWords = [];
@@ -542,7 +544,6 @@
                             const firstWordIdx = currentClauseWords[0].globalIdx;
 
                             if (isChapter || isShortUpper || firstWordIdx === 0 || firstWordIdx >= nextSegmentThreshold) {
-                                // Extract EXACT original string for the sidebar title (preserves hyphens/punctuation)
                                 const firstW = currentClauseWords[0];
                                 const lastW = currentClauseWords[Math.min(19, currentClauseWords.length - 1)];
                                 const titleText = rawText.substring(firstW.charStart, lastW.charEnd);
@@ -633,7 +634,6 @@
             
             if(document.activeElement !== UI.out.jumpInp) UI.out.jumpInp.value = wordObj.globalIdx + 1;
 
-            // Safe Hardware-Accel V-Sync Scrolling
             const contextSpan = document.getElementById(`uw-${wordObj.globalIdx}`);
             if(contextSpan) {
                 if(STATE.lastContextSpan) STATE.lastContextSpan.classList.remove('active-word');
@@ -682,26 +682,44 @@
                 this.isActive = false;
                 this.timer = null;
                 this.engineSupportsBoundaries = false; 
+                this.expectedUtt = null; // Ghost Event Mutex Lock
+                this.resumeGlobalIdx = null; // Internal queue for pausing states
             }
 
             start(startWordIdx = 0) {
                 this.isActive = true;
-                this.jumpTo(startWordIdx, false); 
+                this.jumpTo(startWordIdx, true); 
             }
 
-            jumpTo(globalWordIdx, requireRestart = true) {
-                if(requireRestart) {
-                    this.pause(); window.speechSynthesis.cancel();
-                    if(this.timer) clearInterval(this.timer);
-                    this.engineSupportsBoundaries = false; 
-                }
+            jumpTo(globalWordIdx, autoPlay = false) {
+                // 1. Completely destroy ghost events and old timers
+                this.expectedUtt = null; 
+                window.speechSynthesis.cancel();
+                if(this.timer) clearInterval(this.timer);
+                this.engineSupportsBoundaries = false; 
+
+                // 2. Locate absolute positional context
                 this.currentClauseIdx = Math.max(0, this.clauses.findIndex(c => c.words.some(w => w.globalIdx >= globalWordIdx)));
-                if(STATE.isPaused) {
-                    if(this.clauses[this.currentClauseIdx]) {
-                        const targetWord = this.clauses[this.currentClauseIdx].words.find(w => w.globalIdx >= globalWordIdx) || this.clauses[this.currentClauseIdx].words[0];
-                        renderWord(targetWord);
-                    }
-                } else this.playClause(globalWordIdx);
+                this.resumeGlobalIdx = globalWordIdx;
+
+                // 3. Render target word visibly immediately
+                if(this.clauses[this.currentClauseIdx]) {
+                    const targetWord = this.clauses[this.currentClauseIdx].words.find(w => w.globalIdx >= globalWordIdx) || this.clauses[this.currentClauseIdx].words[0];
+                    renderWord(targetWord);
+                }
+
+                // 4. Either sit paused in flushed state, or instantly play from slice
+                if (autoPlay) {
+                    STATE.isPaused = false;
+                    UI.out.pause.innerText = "Pause"; 
+                    UI.out.pause.classList.remove('active');
+                    this.playClause(this.resumeGlobalIdx);
+                    this.resumeGlobalIdx = null;
+                } else {
+                    STATE.isPaused = true;
+                    UI.out.pause.innerText = "Resume"; 
+                    UI.out.pause.classList.add('active');
+                }
             }
 
             changeVoice(voiceIndex, isEdge) { this.voiceIndex = voiceIndex; this.isEdge = isEdge; }
@@ -711,25 +729,33 @@
                 if (this.currentClauseIdx >= this.clauses.length) return stopSequence();
 
                 const clause = this.clauses[this.currentClauseIdx];
-                
-                // MASKING ENGINE: Replaces hyphens/dashes with spaces in the audio buffer.
-                // This forces the TTS engine to see them as individual words and fire an event for each one,
-                // completely bypassing the TTS hyphen-grouping bug while preserving string length.
-                const audioText = clause.text.replace(/[-—–]/g, ' ');
-                const utt = new SpeechSynthesisUtterance(audioText);
-                
-                if (!this.isEdge && STATE.voices[this.voiceIndex]) utt.voice = STATE.voices[this.voiceIndex];
-                utt.rate = this.rate;
-
                 let currentVisualIdx = 0;
+                let charOffset = 0; // The slice delimiter
+
+                // Calculate mid-clause jumping parameters
                 if(startAtGlobalIdx !== null) {
                     currentVisualIdx = clause.words.findIndex(w => w.globalIdx >= startAtGlobalIdx);
                     if(currentVisualIdx === -1) currentVisualIdx = 0;
                 }
 
+                let textToSpeak = clause.text;
+                if (currentVisualIdx > 0) {
+                    const startWord = clause.words[currentVisualIdx];
+                    charOffset = startWord.clauseCharStart;
+                    textToSpeak = clause.text.substring(charOffset);
+                }
+
+                const audioText = textToSpeak.replace(/[-—–]/g, ' ');
+                const utt = new SpeechSynthesisUtterance(audioText);
+                this.expectedUtt = utt; // Apply Mutex
+                
+                if (!this.isEdge && STATE.voices[this.voiceIndex]) utt.voice = STATE.voices[this.voiceIndex];
+                utt.rate = this.rate;
+
                 const msPerWord = 60000 / (260 * this.rate);
 
                 utt.onstart = () => {
+                    if (this.expectedUtt !== utt) return; // Ghost Check
                     renderWord(clause.words[currentVisualIdx]);
                     if(this.timer) clearInterval(this.timer);
                     
@@ -745,15 +771,19 @@
                 };
 
                 utt.onboundary = (e) => {
+                    if (this.expectedUtt !== utt) return; // Ghost Check
                     if (e.name === 'word') {
                         if (!this.engineSupportsBoundaries) {
                             this.engineSupportsBoundaries = true;
                             if(this.timer) clearInterval(this.timer);
                         }
                         
+                        // Add slice offset to mathematically restore index validity to original clause
+                        const adjustedCharIndex = e.charIndex + charOffset;
+                        
                         let exactIdx = currentVisualIdx;
                         for (let i = currentVisualIdx; i < clause.words.length; i++) {
-                            if (e.charIndex >= (clause.words[i].clauseCharStart - 2)) exactIdx = i;
+                            if (adjustedCharIndex >= (clause.words[i].clauseCharStart - 2)) exactIdx = i;
                             else break;
                         }
                         
@@ -765,6 +795,7 @@
                 };
 
                 utt.onend = () => {
+                    if (this.expectedUtt !== utt) return; // Ghost Check
                     if(this.timer) clearInterval(this.timer);
                     
                     const advanceClause = () => {
@@ -772,6 +803,7 @@
                         if(this.isActive && !STATE.isPaused) this.playClause();
                     };
 
+                    // Forced Flush to correct for missing boundary events
                     if (currentVisualIdx < clause.words.length - 1) {
                         currentVisualIdx = clause.words.length - 1;
                         renderWord(clause.words[currentVisualIdx]);
@@ -784,9 +816,26 @@
                 window.speechSynthesis.speak(utt);
             }
 
-            pause() { window.speechSynthesis.pause(); }
-            resume() { window.speechSynthesis.resume(); if(!window.speechSynthesis.speaking) this.playClause(); }
-            stop() { this.isActive = false; if(this.timer) clearInterval(this.timer); window.speechSynthesis.cancel(); }
+            pause() { 
+                window.speechSynthesis.pause(); 
+            }
+            
+            resume() { 
+                window.speechSynthesis.resume(); 
+                if(!window.speechSynthesis.speaking) {
+                    // Browser forcefully dumped utterance context when paused, completely reconstruct it.
+                    let startIdx = this.resumeGlobalIdx !== null ? this.resumeGlobalIdx : STATE.currentWordGlobalIndex;
+                    this.resumeGlobalIdx = null; 
+                    this.playClause(startIdx); 
+                }
+            }
+            
+            stop() { 
+                this.isActive = false; 
+                this.expectedUtt = null;
+                if(this.timer) clearInterval(this.timer); 
+                window.speechSynthesis.cancel(); 
+            }
         }
 
         // --- Application Control ---
@@ -815,9 +864,6 @@
             UI.layers.input.classList.add('hidden');
             UI.layers.reader.classList.remove('hidden');
 
-            STATE.isPaused = false;
-            UI.out.pause.innerText = "Pause"; UI.out.pause.classList.remove('active');
-
             const rate = parseFloat(UI.in.rate.value);
             const vVal = UI.in.voice.value;
             UI.out.hudVoice.value = vVal; 
@@ -826,6 +872,7 @@
 
             const isEdge = (vVal === 'EDGE_AI');
             STATE.activeEngine = new StrictSyncEngine(STATE.pipelineData, isEdge ? null : parseInt(vVal), rate, isEdge);
+            // The jumpTo logic internally controls auto-play and states
             STATE.activeEngine.start(startWordIdx);
         }
 
