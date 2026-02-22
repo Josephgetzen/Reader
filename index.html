@@ -101,11 +101,23 @@
             color: rgba(255, 255, 255, var(--context-opacity, 0.20));
             z-index: 1; text-align: left; display: none;
             scrollbar-width: none; 
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), padding 0.5s ease, font-size 0.5s ease;
         }
         #context-layer::-webkit-scrollbar { display: none; }
         #context-layer.active { display: block; }
         #context-layer span { transition: color 0.1s, font-weight 0.1s; }
         #context-layer span.active-word { color: var(--accent-color); font-weight: 800; text-shadow: 0 0 10px rgba(59,130,246,0.6); }
+
+        /* --- Full Center Teleprompter Mode (Opacity 100%) --- */
+        body.context-centered #context-layer {
+            width: 100%; padding: 10vh 20vw; font-size: 1.5rem;
+        }
+        body.context-centered .rsvp-stage {
+            opacity: 0 !important; transform: scale(0.95); pointer-events: none;
+        }
+        @media (max-width: 768px) {
+            body.context-centered #context-layer { padding: 10vh 8vw; font-size: 1.2rem; }
+        }
 
         /* --- Structure Sidebar --- */
         #sidebar {
@@ -136,6 +148,7 @@
         .rsvp-stage {
             display: grid; grid-template-columns: 1fr auto 1fr; align-items: baseline;
             width: 100%; max-width: 90vw; user-select: none; z-index: 10;
+            transition: opacity 0.4s ease, transform 0.4s ease;
         }
         .word-chunk { font-family: var(--font-read); font-size: 6rem; white-space: pre; line-height: 1; text-shadow: 0 4px 20px rgba(0,0,0,0.8); }
         .c-left { text-align: right; color: var(--text-muted); justify-self: end; overflow: hidden; max-width: 45vw; }
@@ -147,7 +160,9 @@
         }
         .c-pivot:not(.is-num)::before { top: -35px; }
         .c-pivot:not(.is-num)::after { bottom: -35px; }
-        .c-pivot.is-num { color: #fff; font-weight: 400; }
+        
+        /* Fixed Number Styling -> Same Muted Gray as Left/Right words */
+        .c-pivot.is-num { color: var(--text-muted); font-weight: 400; }
 
         /* --- HUD & Skip Toast --- */
         .hud { position: absolute; bottom: 30px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 15px; transition: opacity 0.5s ease; z-index: 20; }
@@ -251,7 +266,8 @@
                 <!-- Underlay Toggles -->
                 <div style="display:flex; align-items:center; gap:8px; border-left: 1px solid #333; padding-left:15px; margin-left:5px;">
                     <button id="btn-toggle-context" class="hud-btn" style="padding:6px 10px; font-size:0.8rem;">👁 Context</button>
-                    <input type="range" id="rng-opacity" min="0.05" max="0.8" step="0.05" value="0.2" title="Underlay Opacity" style="width: 80px;">
+                    <!-- Opacity slider Max updated to 1.0 -->
+                    <input type="range" id="rng-opacity" min="0.05" max="1.0" step="0.05" value="0.2" title="Underlay Opacity" style="width: 80px;">
                 </div>
 
                 <select id="sel-hud-voice" class="hud-select" title="Change Voice On-the-Fly"></select>
@@ -269,7 +285,7 @@
     <script>
         /**
          * ReadSync | Enterprise Architecture
-         * Added Fix: TTS Ghost-Event Mutex Isolation & Perfect Clause Slicing
+         * Added Fixes: Screen Wake Lock API, 100% Opacity Teleprompter shift, Muted Number Display
          */
 
         if(window.pdfjsLib) window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
@@ -307,6 +323,28 @@
         let lastSkipTime = 0;
         let skipDirection = 0;
 
+        // --- Screen Wake Lock Manager ---
+        const WakeLockManager = {
+            lock: null,
+            async acquire() {
+                if ('wakeLock' in navigator && !this.lock) {
+                    try { this.lock = await navigator.wakeLock.request('screen'); } 
+                    catch (err) { console.warn('Wake Lock error:', err); }
+                }
+            },
+            release() {
+                if (this.lock) {
+                    this.lock.release().then(() => { this.lock = null; });
+                }
+            }
+        };
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && STATE.activeEngine && !STATE.isPaused) {
+                WakeLockManager.acquire();
+            }
+        });
+
         window.addEventListener('load', () => {
             initVoiceLoader();
             bindGlobalDragEvents();
@@ -322,7 +360,8 @@
                     text: UI.in.text.value, 
                     wordIdx: STATE.currentWordGlobalIndex, 
                     rate: UI.in.rate.value, 
-                    voice: UI.in.voice.value 
+                    voice: UI.in.voice.value,
+                    opacity: UI.out.rngOpacity.value
                 };
                 localStorage.setItem('ReadSync_Save', JSON.stringify(data));
                 alert("Session Bookmarked! You can resume from this exact word later.");
@@ -340,8 +379,13 @@
                 UI.in.rateDisp.innerText = data.rate;
                 UI.in.voice.value = data.voice;
                 
+                if (data.opacity) {
+                    UI.out.rngOpacity.value = data.opacity;
+                    applyContextOpacity(parseFloat(data.opacity));
+                }
+
                 UI.in.bookmarkAlert.style.display = 'none';
-                startSequence(data.wordIdx); // startSequence inherently calls jumpTo(x, true)
+                startSequence(data.wordIdx); 
             }
         };
 
@@ -372,7 +416,6 @@
                 clearTimeout(UI.out.skipToast.timer);
                 UI.out.skipToast.timer = setTimeout(() => UI.out.skipToast.classList.remove('show'), 600);
 
-                // Auto-resume if it was already playing, otherwise stay paused.
                 const wasPlaying = !STATE.isPaused;
                 STATE.activeEngine.jumpTo(targetIdx, wasPlaying);
             }
@@ -456,6 +499,20 @@
             if(window.speechSynthesis.onvoiceschanged !== undefined) window.speechSynthesis.onvoiceschanged = loadNative;
         }
 
+        function applyContextOpacity(val) {
+            document.documentElement.style.setProperty('--context-opacity', val);
+            if (val >= 1.0) {
+                document.body.classList.add('context-centered');
+                // Automatically activate context if pushed to 100%
+                if (!UI.out.contextLayer.classList.contains('active')) {
+                    UI.out.contextLayer.classList.add('active');
+                    UI.out.btnToggleContext.classList.add('active');
+                }
+            } else {
+                document.body.classList.remove('context-centered');
+            }
+        }
+
         function bindUIEvents() {
             UI.in.rate.addEventListener('input', e => UI.in.rateDisp.innerText = parseFloat(e.target.value).toFixed(1));
             UI.in.text.addEventListener('input', e => UI.in.count.innerText = e.target.value.length);
@@ -489,7 +546,8 @@
                     container.scrollTo({ top: spanTop - containerHalf + spanHalf, behavior: 'auto' });
                 }
             });
-            UI.out.rngOpacity.addEventListener('input', (e) => { document.documentElement.style.setProperty('--context-opacity', e.target.value); });
+            
+            UI.out.rngOpacity.addEventListener('input', (e) => applyContextOpacity(parseFloat(e.target.value)));
 
             UI.out.hudVoice.addEventListener('change', (e) => {
                 if(!STATE.activeEngine) return;
@@ -497,7 +555,6 @@
                 const isEdge = (vVal === 'EDGE_AI');
                 STATE.activeEngine.changeVoice(isEdge ? null : parseInt(vVal), isEdge);
                 
-                // Force a jump to current word to cleanly instantiate the new voice mid-stream
                 STATE.activeEngine.jumpTo(STATE.currentWordGlobalIndex, !STATE.isPaused);
             });
         }
@@ -507,7 +564,6 @@
             let target = parseInt(UI.out.jumpInp.value) - 1; 
             if(isNaN(target)) return;
             target = Math.max(0, Math.min(target, STATE.pipelineData.totalWords - 1));
-            // User requested that manually using 'Go' button explicitly pauses the stream.
             STATE.activeEngine.jumpTo(target, false);
         }
 
@@ -682,8 +738,8 @@
                 this.isActive = false;
                 this.timer = null;
                 this.engineSupportsBoundaries = false; 
-                this.expectedUtt = null; // Ghost Event Mutex Lock
-                this.resumeGlobalIdx = null; // Internal queue for pausing states
+                this.expectedUtt = null; 
+                this.resumeGlobalIdx = null; 
             }
 
             start(startWordIdx = 0) {
@@ -692,23 +748,19 @@
             }
 
             jumpTo(globalWordIdx, autoPlay = false) {
-                // 1. Completely destroy ghost events and old timers
                 this.expectedUtt = null; 
                 window.speechSynthesis.cancel();
                 if(this.timer) clearInterval(this.timer);
                 this.engineSupportsBoundaries = false; 
 
-                // 2. Locate absolute positional context
                 this.currentClauseIdx = Math.max(0, this.clauses.findIndex(c => c.words.some(w => w.globalIdx >= globalWordIdx)));
                 this.resumeGlobalIdx = globalWordIdx;
 
-                // 3. Render target word visibly immediately
                 if(this.clauses[this.currentClauseIdx]) {
                     const targetWord = this.clauses[this.currentClauseIdx].words.find(w => w.globalIdx >= globalWordIdx) || this.clauses[this.currentClauseIdx].words[0];
                     renderWord(targetWord);
                 }
 
-                // 4. Either sit paused in flushed state, or instantly play from slice
                 if (autoPlay) {
                     STATE.isPaused = false;
                     UI.out.pause.innerText = "Pause"; 
@@ -719,6 +771,7 @@
                     STATE.isPaused = true;
                     UI.out.pause.innerText = "Resume"; 
                     UI.out.pause.classList.add('active');
+                    WakeLockManager.release();
                 }
             }
 
@@ -728,11 +781,12 @@
                 if (!this.isActive || STATE.isPaused) return;
                 if (this.currentClauseIdx >= this.clauses.length) return stopSequence();
 
+                WakeLockManager.acquire();
+
                 const clause = this.clauses[this.currentClauseIdx];
                 let currentVisualIdx = 0;
-                let charOffset = 0; // The slice delimiter
+                let charOffset = 0; 
 
-                // Calculate mid-clause jumping parameters
                 if(startAtGlobalIdx !== null) {
                     currentVisualIdx = clause.words.findIndex(w => w.globalIdx >= startAtGlobalIdx);
                     if(currentVisualIdx === -1) currentVisualIdx = 0;
@@ -747,7 +801,7 @@
 
                 const audioText = textToSpeak.replace(/[-—–]/g, ' ');
                 const utt = new SpeechSynthesisUtterance(audioText);
-                this.expectedUtt = utt; // Apply Mutex
+                this.expectedUtt = utt; 
                 
                 if (!this.isEdge && STATE.voices[this.voiceIndex]) utt.voice = STATE.voices[this.voiceIndex];
                 utt.rate = this.rate;
@@ -755,7 +809,7 @@
                 const msPerWord = 60000 / (260 * this.rate);
 
                 utt.onstart = () => {
-                    if (this.expectedUtt !== utt) return; // Ghost Check
+                    if (this.expectedUtt !== utt) return; 
                     renderWord(clause.words[currentVisualIdx]);
                     if(this.timer) clearInterval(this.timer);
                     
@@ -771,14 +825,13 @@
                 };
 
                 utt.onboundary = (e) => {
-                    if (this.expectedUtt !== utt) return; // Ghost Check
+                    if (this.expectedUtt !== utt) return; 
                     if (e.name === 'word') {
                         if (!this.engineSupportsBoundaries) {
                             this.engineSupportsBoundaries = true;
                             if(this.timer) clearInterval(this.timer);
                         }
                         
-                        // Add slice offset to mathematically restore index validity to original clause
                         const adjustedCharIndex = e.charIndex + charOffset;
                         
                         let exactIdx = currentVisualIdx;
@@ -795,7 +848,7 @@
                 };
 
                 utt.onend = () => {
-                    if (this.expectedUtt !== utt) return; // Ghost Check
+                    if (this.expectedUtt !== utt) return; 
                     if(this.timer) clearInterval(this.timer);
                     
                     const advanceClause = () => {
@@ -803,7 +856,6 @@
                         if(this.isActive && !STATE.isPaused) this.playClause();
                     };
 
-                    // Forced Flush to correct for missing boundary events
                     if (currentVisualIdx < clause.words.length - 1) {
                         currentVisualIdx = clause.words.length - 1;
                         renderWord(clause.words[currentVisualIdx]);
@@ -818,12 +870,13 @@
 
             pause() { 
                 window.speechSynthesis.pause(); 
+                WakeLockManager.release();
             }
             
             resume() { 
                 window.speechSynthesis.resume(); 
+                WakeLockManager.acquire();
                 if(!window.speechSynthesis.speaking) {
-                    // Browser forcefully dumped utterance context when paused, completely reconstruct it.
                     let startIdx = this.resumeGlobalIdx !== null ? this.resumeGlobalIdx : STATE.currentWordGlobalIndex;
                     this.resumeGlobalIdx = null; 
                     this.playClause(startIdx); 
@@ -835,6 +888,7 @@
                 this.expectedUtt = null;
                 if(this.timer) clearInterval(this.timer); 
                 window.speechSynthesis.cancel(); 
+                WakeLockManager.release();
             }
         }
 
@@ -867,12 +921,14 @@
             const rate = parseFloat(UI.in.rate.value);
             const vVal = UI.in.voice.value;
             UI.out.hudVoice.value = vVal; 
+            
+            // Set opacity based on the slider state on start
+            applyContextOpacity(parseFloat(UI.out.rngOpacity.value));
 
             window.speechSynthesis.cancel(); 
 
             const isEdge = (vVal === 'EDGE_AI');
             STATE.activeEngine = new StrictSyncEngine(STATE.pipelineData, isEdge ? null : parseInt(vVal), rate, isEdge);
-            // The jumpTo logic internally controls auto-play and states
             STATE.activeEngine.start(startWordIdx);
         }
 
@@ -886,6 +942,7 @@
             UI.out.sidebar.classList.remove('open');
             UI.out.contextLayer.classList.remove('active');
             UI.out.btnToggleContext.classList.remove('active');
+            document.body.classList.remove('context-centered');
             UI.out.left.innerText = ''; UI.out.pivot.innerText = ''; UI.out.right.innerText = '';
             
             StorageManager.checkBookmark(); 
