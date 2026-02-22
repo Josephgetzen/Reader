@@ -60,11 +60,29 @@
         .field { display: flex; flex-direction: column; gap: 8px; }
         label { font-size: 0.75rem; color: #999; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
 
-        select, input[type="range"], input[type="text"], input[type="number"], button {
+        select, input[type="text"], input[type="number"], button {
             background: #0a0b0e; border: 1px solid var(--border); color: white;
             padding: 12px; border-radius: 8px; outline: none; transition: border-color 0.2s;
         }
-        select:focus, input:focus { border-color: var(--accent-color); }
+        select:focus, input[type="text"]:focus, input[type="number"]:focus { border-color: var(--accent-color); }
+
+        /* Custom Range Slider (Fixes 100% boundary bug) */
+        input[type="range"] {
+            -webkit-appearance: none; width: 100%; background: transparent; outline: none; margin: 10px 0;
+        }
+        input[type="range"]::-webkit-slider-runnable-track {
+            width: 100%; height: 6px; background: #1a1c23; border-radius: 4px; border: 1px solid var(--border);
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%;
+            background: var(--accent-color); margin-top: -6px; cursor: pointer;
+        }
+        input[type="range"]::-moz-range-track {
+            width: 100%; height: 6px; background: #1a1c23; border-radius: 4px; border: 1px solid var(--border);
+        }
+        input[type="range"]::-moz-range-thumb {
+            height: 16px; width: 16px; border-radius: 50%; background: var(--accent-color); border: none; cursor: pointer;
+        }
 
         .drop-zone {
             border: 2px dashed var(--border); border-radius: 8px; padding: 25px;
@@ -138,39 +156,40 @@
         .struct-item:hover { background: rgba(59, 130, 246, 0.1); color: white; border-left: 3px solid var(--accent-color); }
         .marquee-text { display: inline-block; pointer-events: none; }
 
-        /* --- Reader Stage & Quotes Logic --- */
+        /* --- Reader Stage & Exact Quoting Logic --- */
         .rsvp-stage {
             display: grid; grid-template-columns: 1fr auto 1fr; align-items: baseline;
             width: 100%; max-width: 90vw; user-select: none; z-index: 10;
-            transition: background 0.4s ease, opacity 0.4s ease, transform 0.4s ease;
+            transition: opacity 0.4s ease, transform 0.4s ease;
             padding: 20px 0; border-radius: 16px;
         }
-        .rsvp-stage.quote-active { background: rgba(239, 68, 68, 0.05); }
 
         .word-chunk { font-family: var(--font-read); font-size: 6rem; white-space: pre; line-height: 1; text-shadow: 0 4px 20px rgba(0,0,0,0.8); transition: color 0.2s ease; }
         .c-left { text-align: right; color: var(--text-muted); justify-self: end; overflow: hidden; max-width: 45vw; }
         .c-right { text-align: left; color: var(--text-muted); justify-self: start; overflow: hidden; max-width: 45vw; }
         .c-pivot { color: var(--pivot-color); font-weight: 700; text-align: center; position: relative; z-index: 10; }
 
-        .c-pivot:not(.is-num)::before, .c-pivot:not(.is-num)::after {
+        /* Universal Reticle attached to the pivot (persists on numbers/dates) */
+        .c-pivot::before, .c-pivot::after {
             content: ''; position: absolute; left: 50%; transform: translateX(-50%); width: 2px; height: 18px; background: #333;
         }
-        .c-pivot:not(.is-num)::before { top: -35px; }
-        .c-pivot:not(.is-num)::after { bottom: -35px; }
+        .c-pivot::before { top: -35px; }
+        .c-pivot::after { bottom: -35px; }
         
+        /* Disables the focal color for numbers and dates, turning them gray while preserving the reticle */
         .c-pivot.is-num { color: var(--text-muted); font-weight: 400; }
 
-        /* Direct Quote Styling */
-        .word-chunk.is-quote { color: #b88695; }
-        .c-pivot.is-quote:not(.is-num) { color: #e65b7a; }
-        .c-pivot.is-num.is-quote { color: #b88695; }
+        /* Direct Quote Precise Styling (Muted purple outer letters, standard red pivot) */
+        .c-left.is-quote, .c-right.is-quote { color: #a37286; }
+        /* Pivot naturally stays red via base .c-pivot class, UNLESS it's a number/date, then we override the gray to purple */
+        .c-pivot.is-num.is-quote { color: #a37286; }
 
         /* --- HUD & Skip Toast --- */
         .hud { position: absolute; bottom: 30px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 15px; transition: opacity 0.5s ease; z-index: 20; }
         .hud-top-row { display: flex; align-items: center; gap: 15px; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 30px; border: 1px solid var(--border); backdrop-filter: blur(5px); flex-wrap: wrap; justify-content: center; }
         
         .jump-control { display: flex; align-items: center; gap: 8px; font-family: var(--font-read); font-size: 0.9rem; color: #888; }
-        .jump-control input { width: 70px; padding: 6px; text-align: center; font-family: var(--font-read); border-radius: 4px; background: #111; font-size: 0.9rem; }
+        .jump-control input { width: 70px; padding: 6px; text-align: center; font-family: var(--font-read); border-radius: 4px; background: #111; font-size: 0.9rem; margin: 0; }
         .jump-control button { padding: 6px 12px; font-size: 0.8rem; text-transform: uppercase; font-weight: bold; background: #222; border-radius: 4px; cursor: pointer; }
         .jump-control button:hover { background: var(--accent-color); color: white; border-color: var(--accent-color); }
         
@@ -219,7 +238,7 @@
                 <div class="field">
                     <label>Pacing Rate (WPM Mod)</label>
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <input type="range" id="rng-rate" min="0.5" max="2.5" step="0.1" value="1.0" style="flex-grow:1;">
+                        <input type="range" id="rng-rate" min="0.5" max="2.5" step="0.1" value="1.0">
                         <span id="disp-rate" style="font-size:0.85rem; width:25px; color:#aaa;">1.0</span>
                     </div>
                 </div>
@@ -264,7 +283,7 @@
                     <button id="btn-jump">Go</button>
                 </div>
                 
-                <!-- Underlay & UI Toggles -->
+                <!-- Underlay Toggles -->
                 <div style="display:flex; align-items:center; gap:8px; border-left: 1px solid #333; padding-left:15px; margin-left:5px;">
                     <button id="btn-toggle-context" class="hud-btn" style="padding:6px 10px; font-size:0.8rem;">👁 Context</button>
                     <input type="range" id="rng-opacity" min="0.05" max="1.0" step="0.05" value="0.2" title="Underlay Opacity" style="width: 70px;">
@@ -292,8 +311,8 @@
     <script>
         /**
          * ReadSync | Enterprise Architecture
-         * Added Fixes: Screen Wake Lock, 100% Opacity Teleprompter shift, Quotes Parsing Engine, 
-         * Live Speed Slider, and Intelligent Date Lexer.
+         * Features: Precise Lexing, Wake Lock API, 100% Opacity Shift, Custom Formatted Range Inputs, 
+         * Live Speed Adjustment, and Quote Specific Visual Processing.
          */
 
         if(window.pdfjsLib) window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
@@ -307,7 +326,6 @@
                 bookmarkAlert: document.getElementById('bookmark-alert'), btnResumeBookmark: document.getElementById('btn-resume-bookmark')
             },
             out: {
-                rsvpStage: document.querySelector('.rsvp-stage'),
                 left: document.getElementById('r-left'), pivot: document.getElementById('r-pivot'), right: document.getElementById('r-right'),
                 pause: document.getElementById('btn-pause'), bookmark: document.getElementById('btn-bookmark'), stop: document.getElementById('btn-stop'),
                 jumpInp: document.getElementById('inp-jump'), jumpBtn: document.getElementById('btn-jump'), totalWords: document.getElementById('hud-total'),
@@ -503,16 +521,22 @@
         }
 
         function bindUIEvents() {
-            const syncRate = (val) => {
+            // Live WPM Slider Sync Handler
+            const updateUI = (val) => {
                 UI.in.rate.value = val; UI.in.rateDisp.innerText = val.toFixed(1);
                 UI.out.hudRngRate.value = val; UI.out.hudDispRate.innerText = val.toFixed(1);
+            };
+            UI.in.rate.addEventListener('input', e => updateUI(parseFloat(e.target.value)));
+            UI.out.hudRngRate.addEventListener('input', e => updateUI(parseFloat(e.target.value)));
+            
+            // On mouse up/release, seamlessly construct new stream
+            UI.out.hudRngRate.addEventListener('change', e => {
+                const val = parseFloat(e.target.value);
                 if (STATE.activeEngine) {
                     STATE.activeEngine.rate = val;
                     STATE.activeEngine.jumpTo(STATE.currentWordGlobalIndex, !STATE.isPaused);
                 }
-            };
-            UI.in.rate.addEventListener('input', e => syncRate(parseFloat(e.target.value)));
-            UI.out.hudRngRate.addEventListener('change', e => syncRate(parseFloat(e.target.value))); // onChange to prevent buffer spam
+            });
 
             UI.in.text.addEventListener('input', e => UI.in.count.innerText = e.target.value.length);
             UI.in.start.addEventListener('click', () => startSequence(0));
@@ -564,7 +588,7 @@
             STATE.activeEngine.jumpTo(target, false);
         }
 
-        // --- Text Pipeline (Dates, Quotes, & Hyphen Engine) ---
+        // --- Text Pipeline (Intelligent Date & Quote Parser) ---
         class TextPipeline {
             static parse(rawText) {
                 const clauses = [];
@@ -572,8 +596,8 @@
                 let globalIdx = 0;
                 let inQuote = false;
                 
-                // Matches Month+Day dates, or standard words
-                const wordRegex = /\b(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2}(?:st|nd|rd|th)?,?|\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?,?)|[^\s\-—–]+/gi; 
+                // Matches exact Month+Day bindings (with trailing commas preserved) or standard separated words
+                const wordRegex = /\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2}(?:st|nd|rd|th)?[.,;:]*|\b\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?[.,;:]*|[^\s\-—–]+/gi;
                 
                 let match;
                 let currentClauseWords = [];
@@ -586,7 +610,6 @@
                     const charStart = match.index;
                     const charEnd = charStart + rawWord.length;
 
-                    // Direct Quote Formatting State Machine
                     let sq = /["“]/.test(rawWord);
                     let eq = /["”]/.test(rawWord);
                     let singleQuote = sq && eq && rawWord.length > 1;
@@ -595,13 +618,13 @@
 
                     if (singleQuote) {
                         wordObj.isQuote = true;
-                        wordObj.clean = rawWord.replace(/[.,;:!?)(\]\[}]/g, ''); // retain quote marks
+                        wordObj.clean = rawWord.replace(/[.,;:!?)(\]\[}]/g, ''); 
                     } else if (sq && !inQuote) {
                         inQuote = true; wordObj.isQuote = true;
-                        wordObj.clean = rawWord.replace(/[.,;:"!?)(\]\[}“”]/g, '');
+                        wordObj.clean = rawWord.replace(/[.,;:"!?)(\]\[}“”]/g, ''); 
                     } else if (eq && inQuote) {
                         inQuote = false; wordObj.isQuote = true;
-                        wordObj.clean = rawWord.replace(/[.,;:"!?)(\]\[}“”]/g, '');
+                        wordObj.clean = rawWord.replace(/[.,;:"!?)(\]\[}“”]/g, ''); 
                     } else if (inQuote) {
                         wordObj.isQuote = true;
                         wordObj.clean = rawWord.replace(/[.,;:"!?)(\]\[}“”]/g, '');
@@ -612,11 +635,10 @@
                     const textSinceLast = rawText.substring(lastWordEnd, charStart);
                     const prevWordRaw = currentClauseWords.length > 0 ? currentClauseWords[currentClauseWords.length - 1].raw : '';
                     
-                    // Reset dangling quotes on paragraph break
                     if (/[\n\r]{2,}/.test(textSinceLast)) inQuote = false;
 
-                    // clause breaking (ignoring commas inside matched dates)
-                    if (currentClauseWords.length > 0 && (/[.!?;:]$/.test(prevWordRaw) || /[\n\r]/.test(textSinceLast))) {
+                    // Clause boundaries (ignores internal date commas naturally)
+                    if (currentClauseWords.length > 0 && (/[.!?;:]$/.test(prevWordRaw) || (/,$/.test(prevWordRaw) && !/^[A-Z]/.test(wordObj.clean)) || /[\n\r]/.test(textSinceLast))) {
                         const clauseText = rawText.substring(currentClauseStart, charStart);
                         const cleanClause = clauseText.trim();
                         
@@ -729,25 +751,26 @@
                 }
             }
 
-            // Direct Quote UI Application
-            if (wordObj.isQuote) {
-                UI.out.rsvpStage.classList.add('quote-active');
-                UI.out.left.classList.add('is-quote');
-                UI.out.pivot.classList.add('is-quote');
-                UI.out.right.classList.add('is-quote');
-            } else {
-                UI.out.rsvpStage.classList.remove('quote-active');
-                UI.out.left.classList.remove('is-quote');
-                UI.out.pivot.classList.remove('is-quote');
-                UI.out.right.classList.remove('is-quote');
-            }
-
             const displayToken = wordObj.clean;
             if (!displayToken) return; 
 
-            if (/^\d+$/.test(displayToken)) {
+            // Clear quote colors
+            UI.out.left.classList.remove('is-quote');
+            UI.out.right.classList.remove('is-quote');
+            UI.out.pivot.classList.remove('is-quote');
+            
+            if (wordObj.isQuote) {
+                UI.out.left.classList.add('is-quote');
+                UI.out.right.classList.add('is-quote');
+                UI.out.pivot.classList.add('is-quote');
+            }
+
+            // Number & Date Geometric Centering Logic
+            if (/\d/.test(displayToken)) {
                 UI.out.left.innerText = ''; UI.out.right.innerText = '';
-                UI.out.pivot.innerText = displayToken; UI.out.pivot.classList.add('is-num'); return;
+                UI.out.pivot.innerText = displayToken; 
+                UI.out.pivot.classList.add('is-num'); 
+                return;
             }
 
             UI.out.pivot.classList.remove('is-num');
