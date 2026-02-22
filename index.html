@@ -109,15 +109,9 @@
         #context-layer span.active-word { color: var(--accent-color); font-weight: 800; text-shadow: 0 0 10px rgba(59,130,246,0.6); }
 
         /* --- Full Center Teleprompter Mode (Opacity 100%) --- */
-        body.context-centered #context-layer {
-            width: 100%; padding: 10vh 20vw; font-size: 1.5rem;
-        }
-        body.context-centered .rsvp-stage {
-            opacity: 0 !important; transform: scale(0.95); pointer-events: none;
-        }
-        @media (max-width: 768px) {
-            body.context-centered #context-layer { padding: 10vh 8vw; font-size: 1.2rem; }
-        }
+        body.context-centered #context-layer { width: 100%; padding: 10vh 20vw; font-size: 1.5rem; }
+        body.context-centered .rsvp-stage { opacity: 0 !important; transform: scale(0.95); pointer-events: none; }
+        @media (max-width: 768px) { body.context-centered #context-layer { padding: 10vh 8vw; font-size: 1.2rem; } }
 
         /* --- Structure Sidebar --- */
         #sidebar {
@@ -144,13 +138,16 @@
         .struct-item:hover { background: rgba(59, 130, 246, 0.1); color: white; border-left: 3px solid var(--accent-color); }
         .marquee-text { display: inline-block; pointer-events: none; }
 
-        /* --- Reader Stage --- */
+        /* --- Reader Stage & Quotes Logic --- */
         .rsvp-stage {
             display: grid; grid-template-columns: 1fr auto 1fr; align-items: baseline;
             width: 100%; max-width: 90vw; user-select: none; z-index: 10;
-            transition: opacity 0.4s ease, transform 0.4s ease;
+            transition: background 0.4s ease, opacity 0.4s ease, transform 0.4s ease;
+            padding: 20px 0; border-radius: 16px;
         }
-        .word-chunk { font-family: var(--font-read); font-size: 6rem; white-space: pre; line-height: 1; text-shadow: 0 4px 20px rgba(0,0,0,0.8); }
+        .rsvp-stage.quote-active { background: rgba(239, 68, 68, 0.05); }
+
+        .word-chunk { font-family: var(--font-read); font-size: 6rem; white-space: pre; line-height: 1; text-shadow: 0 4px 20px rgba(0,0,0,0.8); transition: color 0.2s ease; }
         .c-left { text-align: right; color: var(--text-muted); justify-self: end; overflow: hidden; max-width: 45vw; }
         .c-right { text-align: left; color: var(--text-muted); justify-self: start; overflow: hidden; max-width: 45vw; }
         .c-pivot { color: var(--pivot-color); font-weight: 700; text-align: center; position: relative; z-index: 10; }
@@ -161,8 +158,12 @@
         .c-pivot:not(.is-num)::before { top: -35px; }
         .c-pivot:not(.is-num)::after { bottom: -35px; }
         
-        /* Fixed Number Styling -> Same Muted Gray as Left/Right words */
         .c-pivot.is-num { color: var(--text-muted); font-weight: 400; }
+
+        /* Direct Quote Styling */
+        .word-chunk.is-quote { color: #b88695; }
+        .c-pivot.is-quote:not(.is-num) { color: #e65b7a; }
+        .c-pivot.is-num.is-quote { color: #b88695; }
 
         /* --- HUD & Skip Toast --- */
         .hud { position: absolute; bottom: 30px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 15px; transition: opacity 0.5s ease; z-index: 20; }
@@ -216,7 +217,7 @@
                     <select id="sel-voice"><option value="EDGE_AI">Edge AI (Local LLM Placeholder)</option></select>
                 </div>
                 <div class="field">
-                    <label>Pacing Rate</label>
+                    <label>Pacing Rate (WPM Mod)</label>
                     <div style="display:flex; align-items:center; gap:10px;">
                         <input type="range" id="rng-rate" min="0.5" max="2.5" step="0.1" value="1.0" style="flex-grow:1;">
                         <span id="disp-rate" style="font-size:0.85rem; width:25px; color:#aaa;">1.0</span>
@@ -263,14 +264,20 @@
                     <button id="btn-jump">Go</button>
                 </div>
                 
-                <!-- Underlay Toggles -->
+                <!-- Underlay & UI Toggles -->
                 <div style="display:flex; align-items:center; gap:8px; border-left: 1px solid #333; padding-left:15px; margin-left:5px;">
                     <button id="btn-toggle-context" class="hud-btn" style="padding:6px 10px; font-size:0.8rem;">👁 Context</button>
-                    <!-- Opacity slider Max updated to 1.0 -->
-                    <input type="range" id="rng-opacity" min="0.05" max="1.0" step="0.05" value="0.2" title="Underlay Opacity" style="width: 80px;">
+                    <input type="range" id="rng-opacity" min="0.05" max="1.0" step="0.05" value="0.2" title="Underlay Opacity" style="width: 70px;">
                 </div>
 
-                <select id="sel-hud-voice" class="hud-select" title="Change Voice On-the-Fly"></select>
+                <!-- Real-Time Speed Slider -->
+                <div style="display:flex; align-items:center; gap:8px; border-left: 1px solid #333; padding-left:15px; margin-left:5px;">
+                    <span style="font-size:0.7rem; color:#888; font-weight:bold;">WPM</span>
+                    <input type="range" id="hud-rng-rate" min="0.5" max="2.5" step="0.1" value="1.0" title="Reading Speed" style="width: 70px;">
+                    <span id="hud-disp-rate" style="font-size:0.75rem; color:#aaa; width:20px;">1.0</span>
+                </div>
+
+                <select id="sel-hud-voice" class="hud-select" title="Change Voice On-the-Fly" style="margin-left: 10px;"></select>
                 <button id="btn-fullscreen" class="hud-btn" style="padding:6px 12px; font-size:1.2rem;" title="Zen Fullscreen">⛶</button>
             </div>
 
@@ -285,7 +292,8 @@
     <script>
         /**
          * ReadSync | Enterprise Architecture
-         * Added Fixes: Screen Wake Lock API, 100% Opacity Teleprompter shift, Muted Number Display
+         * Added Fixes: Screen Wake Lock, 100% Opacity Teleprompter shift, Quotes Parsing Engine, 
+         * Live Speed Slider, and Intelligent Date Lexer.
          */
 
         if(window.pdfjsLib) window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
@@ -299,29 +307,23 @@
                 bookmarkAlert: document.getElementById('bookmark-alert'), btnResumeBookmark: document.getElementById('btn-resume-bookmark')
             },
             out: {
+                rsvpStage: document.querySelector('.rsvp-stage'),
                 left: document.getElementById('r-left'), pivot: document.getElementById('r-pivot'), right: document.getElementById('r-right'),
                 pause: document.getElementById('btn-pause'), bookmark: document.getElementById('btn-bookmark'), stop: document.getElementById('btn-stop'),
                 jumpInp: document.getElementById('inp-jump'), jumpBtn: document.getElementById('btn-jump'), totalWords: document.getElementById('hud-total'),
-                hudVoice: document.getElementById('sel-hud-voice'), btnFullscreen: document.getElementById('btn-fullscreen'),
-                sidebar: document.getElementById('sidebar'), btnToggleSidebar: document.getElementById('btn-toggle-sidebar'), btnCloseSidebar: document.getElementById('btn-close-sidebar'), sidebarContent: document.getElementById('sidebar-content'),
+                hudVoice: document.getElementById('sel-hud-voice'), hudRngRate: document.getElementById('hud-rng-rate'), hudDispRate: document.getElementById('hud-disp-rate'),
+                btnFullscreen: document.getElementById('btn-fullscreen'), sidebar: document.getElementById('sidebar'), btnToggleSidebar: document.getElementById('btn-toggle-sidebar'), btnCloseSidebar: document.getElementById('btn-close-sidebar'), sidebarContent: document.getElementById('sidebar-content'),
                 contextLayer: document.getElementById('context-layer'), btnToggleContext: document.getElementById('btn-toggle-context'), rngOpacity: document.getElementById('rng-opacity'), skipToast: document.getElementById('skip-toast')
             }
         };
 
         const STATE = {
-            rawText: '', 
-            voices: [],
-            activeEngine: null,
-            pipelineData: null,
-            currentWordGlobalIndex: 0,
-            isPaused: false,
-            lastContextSpan: null
+            rawText: '', voices: [], activeEngine: null, pipelineData: null,
+            currentWordGlobalIndex: 0, isPaused: false, lastContextSpan: null
         };
 
         let zenIdleTimer = null;
-        let skipStreak = 0;
-        let lastSkipTime = 0;
-        let skipDirection = 0;
+        let skipStreak = 0, lastSkipTime = 0, skipDirection = 0;
 
         // --- Screen Wake Lock Manager ---
         const WakeLockManager = {
@@ -333,16 +335,12 @@
                 }
             },
             release() {
-                if (this.lock) {
-                    this.lock.release().then(() => { this.lock = null; });
-                }
+                if (this.lock) { this.lock.release().then(() => { this.lock = null; }); }
             }
         };
 
         document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible' && STATE.activeEngine && !STATE.isPaused) {
-                WakeLockManager.acquire();
-            }
+            if (document.visibilityState === 'visible' && STATE.activeEngine && !STATE.isPaused) WakeLockManager.acquire();
         });
 
         window.addEventListener('load', () => {
@@ -357,11 +355,8 @@
             saveBookmark() {
                 if(!STATE.pipelineData) return;
                 const data = { 
-                    text: UI.in.text.value, 
-                    wordIdx: STATE.currentWordGlobalIndex, 
-                    rate: UI.in.rate.value, 
-                    voice: UI.in.voice.value,
-                    opacity: UI.out.rngOpacity.value
+                    text: UI.in.text.value, wordIdx: STATE.currentWordGlobalIndex, 
+                    rate: UI.in.rate.value, voice: UI.in.voice.value, opacity: UI.out.rngOpacity.value
                 };
                 localStorage.setItem('ReadSync_Save', JSON.stringify(data));
                 alert("Session Bookmarked! You can resume from this exact word later.");
@@ -373,17 +368,15 @@
             loadBookmark() {
                 const data = JSON.parse(localStorage.getItem('ReadSync_Save'));
                 if(!data) return;
-                UI.in.text.value = data.text;
-                UI.in.count.innerText = data.text.length;
-                UI.in.rate.value = data.rate; 
-                UI.in.rateDisp.innerText = data.rate;
+                UI.in.text.value = data.text; UI.in.count.innerText = data.text.length;
+                UI.in.rate.value = data.rate; UI.in.rateDisp.innerText = data.rate;
+                UI.out.hudRngRate.value = data.rate; UI.out.hudDispRate.innerText = data.rate;
                 UI.in.voice.value = data.voice;
                 
                 if (data.opacity) {
                     UI.out.rngOpacity.value = data.opacity;
                     applyContextOpacity(parseFloat(data.opacity));
                 }
-
                 UI.in.bookmarkAlert.style.display = 'none';
                 startSequence(data.wordIdx); 
             }
@@ -416,8 +409,7 @@
                 clearTimeout(UI.out.skipToast.timer);
                 UI.out.skipToast.timer = setTimeout(() => UI.out.skipToast.classList.remove('show'), 600);
 
-                const wasPlaying = !STATE.isPaused;
-                STATE.activeEngine.jumpTo(targetIdx, wasPlaying);
+                STATE.activeEngine.jumpTo(targetIdx, !STATE.isPaused);
             }
         });
 
@@ -503,18 +495,25 @@
             document.documentElement.style.setProperty('--context-opacity', val);
             if (val >= 1.0) {
                 document.body.classList.add('context-centered');
-                // Automatically activate context if pushed to 100%
                 if (!UI.out.contextLayer.classList.contains('active')) {
                     UI.out.contextLayer.classList.add('active');
                     UI.out.btnToggleContext.classList.add('active');
                 }
-            } else {
-                document.body.classList.remove('context-centered');
-            }
+            } else document.body.classList.remove('context-centered');
         }
 
         function bindUIEvents() {
-            UI.in.rate.addEventListener('input', e => UI.in.rateDisp.innerText = parseFloat(e.target.value).toFixed(1));
+            const syncRate = (val) => {
+                UI.in.rate.value = val; UI.in.rateDisp.innerText = val.toFixed(1);
+                UI.out.hudRngRate.value = val; UI.out.hudDispRate.innerText = val.toFixed(1);
+                if (STATE.activeEngine) {
+                    STATE.activeEngine.rate = val;
+                    STATE.activeEngine.jumpTo(STATE.currentWordGlobalIndex, !STATE.isPaused);
+                }
+            };
+            UI.in.rate.addEventListener('input', e => syncRate(parseFloat(e.target.value)));
+            UI.out.hudRngRate.addEventListener('change', e => syncRate(parseFloat(e.target.value))); // onChange to prevent buffer spam
+
             UI.in.text.addEventListener('input', e => UI.in.count.innerText = e.target.value.length);
             UI.in.start.addEventListener('click', () => startSequence(0));
             UI.in.btnResumeBookmark.addEventListener('click', () => StorageManager.loadBookmark());
@@ -546,7 +545,6 @@
                     container.scrollTo({ top: spanTop - containerHalf + spanHalf, behavior: 'auto' });
                 }
             });
-            
             UI.out.rngOpacity.addEventListener('input', (e) => applyContextOpacity(parseFloat(e.target.value)));
 
             UI.out.hudVoice.addEventListener('change', (e) => {
@@ -554,7 +552,6 @@
                 const vVal = e.target.value;
                 const isEdge = (vVal === 'EDGE_AI');
                 STATE.activeEngine.changeVoice(isEdge ? null : parseInt(vVal), isEdge);
-                
                 STATE.activeEngine.jumpTo(STATE.currentWordGlobalIndex, !STATE.isPaused);
             });
         }
@@ -567,14 +564,17 @@
             STATE.activeEngine.jumpTo(target, false);
         }
 
-        // --- Text Pipeline (Dual-Index Lexer w/ Hyphen Parsing) ---
+        // --- Text Pipeline (Dates, Quotes, & Hyphen Engine) ---
         class TextPipeline {
             static parse(rawText) {
                 const clauses = [];
                 const structure = [];
                 let globalIdx = 0;
+                let inQuote = false;
                 
-                const wordRegex = /[^\s\-—–]+/g; 
+                // Matches Month+Day dates, or standard words
+                const wordRegex = /\b(?:(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2}(?:st|nd|rd|th)?,?|\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?,?)|[^\s\-—–]+/gi; 
+                
                 let match;
                 let currentClauseWords = [];
                 let currentClauseStart = 0;
@@ -583,17 +583,43 @@
 
                 while ((match = wordRegex.exec(rawText)) !== null) {
                     const rawWord = match[0];
-                    const cleanWord = rawWord.replace(/[.,;:"!?)(\]\[}]/g, '');
                     const charStart = match.index;
                     const charEnd = charStart + rawWord.length;
 
+                    // Direct Quote Formatting State Machine
+                    let sq = /["“]/.test(rawWord);
+                    let eq = /["”]/.test(rawWord);
+                    let singleQuote = sq && eq && rawWord.length > 1;
+                    
+                    let wordObj = { raw: rawWord, charStart, charEnd, globalIdx: globalIdx++ };
+
+                    if (singleQuote) {
+                        wordObj.isQuote = true;
+                        wordObj.clean = rawWord.replace(/[.,;:!?)(\]\[}]/g, ''); // retain quote marks
+                    } else if (sq && !inQuote) {
+                        inQuote = true; wordObj.isQuote = true;
+                        wordObj.clean = rawWord.replace(/[.,;:"!?)(\]\[}“”]/g, '');
+                    } else if (eq && inQuote) {
+                        inQuote = false; wordObj.isQuote = true;
+                        wordObj.clean = rawWord.replace(/[.,;:"!?)(\]\[}“”]/g, '');
+                    } else if (inQuote) {
+                        wordObj.isQuote = true;
+                        wordObj.clean = rawWord.replace(/[.,;:"!?)(\]\[}“”]/g, '');
+                    } else {
+                        wordObj.clean = rawWord.replace(/[.,;:"!?)(\]\[}“”]/g, '');
+                    }
+
                     const textSinceLast = rawText.substring(lastWordEnd, charStart);
                     const prevWordRaw = currentClauseWords.length > 0 ? currentClauseWords[currentClauseWords.length - 1].raw : '';
+                    
+                    // Reset dangling quotes on paragraph break
+                    if (/[\n\r]{2,}/.test(textSinceLast)) inQuote = false;
 
-                    if (currentClauseWords.length > 0 && (/[.,!?;:]$/.test(prevWordRaw) || /[\n\r]/.test(textSinceLast))) {
+                    // clause breaking (ignoring commas inside matched dates)
+                    if (currentClauseWords.length > 0 && (/[.!?;:]$/.test(prevWordRaw) || /[\n\r]/.test(textSinceLast))) {
                         const clauseText = rawText.substring(currentClauseStart, charStart);
-                        
                         const cleanClause = clauseText.trim();
+                        
                         if (cleanClause) {
                             const isChapter = /^(chapter|section|part)\s+\d+/i.test(cleanClause);
                             const isShortUpper = cleanClause.length < 60 && cleanClause === cleanClause.toUpperCase() && /[A-Z]/.test(cleanClause);
@@ -618,9 +644,7 @@
                         currentClauseStart = charStart; 
                     }
 
-                    if (cleanWord.length > 0) {
-                        currentClauseWords.push({ raw: rawWord, clean: cleanWord, charStart, charEnd, globalIdx: globalIdx++ });
-                    }
+                    if (wordObj.clean.length > 0) currentClauseWords.push(wordObj);
                     lastWordEnd = charEnd;
                 }
                 
@@ -705,6 +729,19 @@
                 }
             }
 
+            // Direct Quote UI Application
+            if (wordObj.isQuote) {
+                UI.out.rsvpStage.classList.add('quote-active');
+                UI.out.left.classList.add('is-quote');
+                UI.out.pivot.classList.add('is-quote');
+                UI.out.right.classList.add('is-quote');
+            } else {
+                UI.out.rsvpStage.classList.remove('quote-active');
+                UI.out.left.classList.remove('is-quote');
+                UI.out.pivot.classList.remove('is-quote');
+                UI.out.right.classList.remove('is-quote');
+            }
+
             const displayToken = wordObj.clean;
             if (!displayToken) return; 
 
@@ -763,14 +800,12 @@
 
                 if (autoPlay) {
                     STATE.isPaused = false;
-                    UI.out.pause.innerText = "Pause"; 
-                    UI.out.pause.classList.remove('active');
+                    UI.out.pause.innerText = "Pause"; UI.out.pause.classList.remove('active');
                     this.playClause(this.resumeGlobalIdx);
                     this.resumeGlobalIdx = null;
                 } else {
                     STATE.isPaused = true;
-                    UI.out.pause.innerText = "Resume"; 
-                    UI.out.pause.classList.add('active');
+                    UI.out.pause.innerText = "Resume"; UI.out.pause.classList.add('active');
                     WakeLockManager.release();
                 }
             }
@@ -833,7 +868,6 @@
                         }
                         
                         const adjustedCharIndex = e.charIndex + charOffset;
-                        
                         let exactIdx = currentVisualIdx;
                         for (let i = currentVisualIdx; i < clause.words.length; i++) {
                             if (adjustedCharIndex >= (clause.words[i].clauseCharStart - 2)) exactIdx = i;
@@ -860,39 +894,28 @@
                         currentVisualIdx = clause.words.length - 1;
                         renderWord(clause.words[currentVisualIdx]);
                         setTimeout(advanceClause, 150); 
-                    } else {
-                        advanceClause();
-                    }
+                    } else advanceClause();
                 };
 
                 window.speechSynthesis.speak(utt);
             }
 
-            pause() { 
-                window.speechSynthesis.pause(); 
-                WakeLockManager.release();
-            }
-            
+            pause() { window.speechSynthesis.pause(); WakeLockManager.release(); }
             resume() { 
-                window.speechSynthesis.resume(); 
-                WakeLockManager.acquire();
+                window.speechSynthesis.resume(); WakeLockManager.acquire();
                 if(!window.speechSynthesis.speaking) {
                     let startIdx = this.resumeGlobalIdx !== null ? this.resumeGlobalIdx : STATE.currentWordGlobalIndex;
                     this.resumeGlobalIdx = null; 
                     this.playClause(startIdx); 
                 }
             }
-            
             stop() { 
-                this.isActive = false; 
-                this.expectedUtt = null;
+                this.isActive = false; this.expectedUtt = null;
                 if(this.timer) clearInterval(this.timer); 
-                window.speechSynthesis.cancel(); 
-                WakeLockManager.release();
+                window.speechSynthesis.cancel(); WakeLockManager.release();
             }
         }
 
-        // --- Application Control ---
         function togglePause() {
             STATE.isPaused = !STATE.isPaused;
             if (STATE.isPaused) {
@@ -922,7 +945,6 @@
             const vVal = UI.in.voice.value;
             UI.out.hudVoice.value = vVal; 
             
-            // Set opacity based on the slider state on start
             applyContextOpacity(parseFloat(UI.out.rngOpacity.value));
 
             window.speechSynthesis.cancel(); 
