@@ -613,6 +613,11 @@
 
         function saveLexicon() { localStorage.setItem('ReadSync_Lexicon', JSON.stringify(STATE.lexicon)); }
 
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag]));
+        }
+
         function bindUIEvents() {
             const syncRate = (val) => {
                 UI.in.rate.value = val; UI.in.rateDisp.innerText = val.toFixed(1);
