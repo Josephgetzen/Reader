@@ -66,33 +66,22 @@
         }
         select:focus, input[type="text"]:focus, input[type="number"]:focus { border-color: var(--accent-color); }
 
-        /* Custom Range Slider (Fixes 100% boundary bug) */
-        input[type="range"] {
-            -webkit-appearance: none; width: 100%; background: transparent; outline: none; margin: 10px 0;
-        }
-        input[type="range"]::-webkit-slider-runnable-track {
-            width: 100%; height: 6px; background: #1a1c23; border-radius: 4px; border: 1px solid var(--border);
-        }
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%;
-            background: var(--accent-color); margin-top: -6px; cursor: pointer;
-        }
-        input[type="range"]::-moz-range-track {
-            width: 100%; height: 6px; background: #1a1c23; border-radius: 4px; border: 1px solid var(--border);
-        }
-        input[type="range"]::-moz-range-thumb {
-            height: 16px; width: 16px; border-radius: 50%; background: var(--accent-color); border: none; cursor: pointer;
-        }
+        /* Custom Range Slider */
+        input[type="range"] { -webkit-appearance: none; width: 100%; background: transparent; outline: none; margin: 10px 0; }
+        input[type="range"]::-webkit-slider-runnable-track { width: 100%; height: 6px; background: #1a1c23; border-radius: 4px; border: 1px solid var(--border); }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: var(--accent-color); margin-top: -6px; cursor: pointer; }
+        input[type="range"]::-moz-range-track { width: 100%; height: 6px; background: #1a1c23; border-radius: 4px; border: 1px solid var(--border); }
+        input[type="range"]::-moz-range-thumb { height: 16px; width: 16px; border-radius: 50%; background: var(--accent-color); border: none; cursor: pointer; }
 
         .drop-zone {
             border: 2px dashed var(--border); border-radius: 8px; padding: 25px;
-            text-align: center; color: var(--text-muted); cursor: pointer; transition: all 0.2s; margin-bottom: 20px;
+            text-align: center; color: var(--text-muted); cursor: pointer; transition: all 0.2s; margin-bottom: 10px;
         }
         .drop-zone.dragover { border-color: var(--accent-color); color: var(--accent-hover); background: rgba(59, 130, 246, 0.05); }
 
         textarea {
             width: 100%; height: 160px; background: #0a0b0e; border: 1px solid var(--border);
-            color: #e2e8f0; padding: 15px; font-size: 15px; line-height: 1.6; border-radius: 8px; resize: none;
+            color: #e2e8f0; padding: 15px; font-size: 15px; line-height: 1.6; border-radius: 8px; resize: none; margin-bottom: 5px;
         }
         
         button.primary {
@@ -101,37 +90,29 @@
         }
         button.primary:hover { background: var(--accent-hover); }
 
-        #bookmark-alert {
-            display: none; background: rgba(59,130,246,0.1); border: 1px solid var(--accent-color);
-            padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;
-        }
-        #btn-resume-bookmark {
-            width: 100%; padding: 10px; margin-top: 10px; background: var(--accent-color); color: white; 
-            border: none; border-radius: 6px; cursor: pointer; font-weight: bold; text-transform: uppercase;
-        }
-        #btn-resume-bookmark:hover { background: var(--accent-hover); }
+        .session-panel { background: rgba(59,130,246,0.05); border: 1px solid var(--border); padding: 15px; border-radius: 8px; margin-bottom: 15px; }
 
         /* --- Original Text Context Underlay --- */
         #context-layer {
             position: absolute; right: 0; top: 0; width: 45%; height: 100%;
-            padding: 10vh 5%; overflow-y: auto; overflow-x: hidden; pointer-events: none;
+            padding: 10vh 5%; overflow-y: hidden; overflow-x: hidden; pointer-events: none;
             white-space: pre-wrap; font-family: var(--font-read); font-size: 1.1rem; line-height: 2.0;
             color: rgba(255, 255, 255, var(--context-opacity, 0.20));
             z-index: 1; text-align: left; display: none;
-            scrollbar-width: none; 
             transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1), padding 0.5s ease, font-size 0.5s ease;
         }
-        #context-layer::-webkit-scrollbar { display: none; }
         #context-layer.active { display: block; }
-        #context-layer span { transition: color 0.1s, font-weight 0.1s; }
-        #context-layer span.active-word { color: var(--accent-color); font-weight: 800; text-shadow: 0 0 10px rgba(59,130,246,0.6); }
+        #context-layer span { transition: color 0.1s, text-shadow 0.1s; }
+        
+        /* Fix: Rely on text-shadow to prevent box-model dimension shifts during read */
+        #context-layer span.active-word { color: var(--accent-color); text-shadow: 0 0 2px var(--accent-color), 0 0 10px rgba(59,130,246,0.8); }
 
         /* --- Full Center Teleprompter Mode (Opacity 100%) --- */
         body.context-centered #context-layer { width: 100%; padding: 10vh 20vw; font-size: 1.5rem; }
         body.context-centered .rsvp-stage { opacity: 0 !important; transform: scale(0.95); pointer-events: none; }
         @media (max-width: 768px) { body.context-centered #context-layer { padding: 10vh 8vw; font-size: 1.2rem; } }
 
-        /* --- Structure Sidebar --- */
+        /* --- Multi-Purpose Sidebar --- */
         #sidebar {
             position: fixed; top: 0; left: -320px; width: 320px; height: 100%;
             background: var(--ui-card); border-right: 1px solid var(--border);
@@ -143,7 +124,7 @@
             padding: 20px; border-bottom: 1px solid var(--border);
             display: flex; justify-content: space-between; align-items: center; background: #0a0b0e;
         }
-        .sidebar-header h3 { font-size: 1rem; font-weight: 600; color: white; text-transform: uppercase; letter-spacing: 1px; }
+        .sidebar-header h3 { font-size: 1rem; font-weight: 600; color: white; text-transform: uppercase; letter-spacing: 1px; margin: 0;}
         .close-btn { background: transparent; border: none; color: #888; font-size: 1.5rem; cursor: pointer; padding: 0 5px; }
         .close-btn:hover { color: var(--pivot-color); }
         .sidebar-content { flex: 1; overflow-y: auto; padding: 10px 0; overflow-x: hidden; }
@@ -156,33 +137,32 @@
         .struct-item:hover { background: rgba(59, 130, 246, 0.1); color: white; border-left: 3px solid var(--accent-color); }
         .marquee-text { display: inline-block; pointer-events: none; }
 
+        .lexicon-row { display: flex; gap: 5px; padding: 8px 20px; align-items: center; }
+        .lexicon-row input { flex: 1; padding: 6px; font-size: 0.8rem; }
+        .lex-del { background: #333; border: none; color: white; border-radius: 4px; padding: 5px 10px; cursor: pointer; }
+        .lex-del:hover { background: var(--pivot-color); }
+
         /* --- Reader Stage & Exact Quoting Logic --- */
         .rsvp-stage {
             display: grid; grid-template-columns: 1fr auto 1fr; align-items: baseline;
             width: 100%; max-width: 90vw; user-select: none; z-index: 10;
-            transition: opacity 0.4s ease, transform 0.4s ease;
-            padding: 20px 0; border-radius: 16px;
+            transition: opacity 0.4s ease, transform 0.4s ease; padding: 20px 0; border-radius: 16px;
         }
-
         .word-chunk { font-family: var(--font-read); font-size: 6rem; white-space: pre; line-height: 1; text-shadow: 0 4px 20px rgba(0,0,0,0.8); transition: color 0.2s ease; }
         .c-left { text-align: right; color: var(--text-muted); justify-self: end; overflow: hidden; max-width: 45vw; }
         .c-right { text-align: left; color: var(--text-muted); justify-self: start; overflow: hidden; max-width: 45vw; }
         .c-pivot { color: var(--pivot-color); font-weight: 700; text-align: center; position: relative; z-index: 10; }
 
-        /* Universal Reticle attached to the pivot (persists on numbers/dates) */
-        .c-pivot::before, .c-pivot::after {
-            content: ''; position: absolute; left: 50%; transform: translateX(-50%); width: 2px; height: 18px; background: #333;
-        }
-        .c-pivot::before { top: -35px; }
-        .c-pivot::after { bottom: -35px; }
+        /* Universal Reticle attached to the pivot */
+        .c-pivot::before, .c-pivot::after { content: ''; position: absolute; left: 50%; transform: translateX(-50%); width: 2px; height: 18px; background: #333; }
+        .c-pivot::before { top: -35px; } .c-pivot::after { bottom: -35px; }
         
-        /* Disables the focal color for numbers and dates, turning them gray while preserving the reticle */
+        /* Preemptive Number Disabling */
         .c-pivot.is-num { color: var(--text-muted); font-weight: 400; }
 
-        /* Direct Quote Precise Styling (Muted purple outer letters, standard red pivot) */
+        /* Direct Quote Advanced Formatting */
         .c-left.is-quote, .c-right.is-quote { color: #a37286; }
-        /* Pivot naturally stays red via base .c-pivot class, UNLESS it's a number/date, then we override the gray to purple */
-        .c-pivot.is-num.is-quote { color: #a37286; }
+        .c-pivot.is-num.is-quote { color: #a37286; } /* Numbers inside quotes inherit quote color, not gray */
 
         /* --- HUD & Skip Toast --- */
         .hud { position: absolute; bottom: 30px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 15px; transition: opacity 0.5s ease; z-index: 20; }
@@ -209,7 +189,6 @@
             text-shadow: 0 10px 30px rgba(0,0,0,0.8); transition: all 0.15s ease-out; z-index: 30;
         }
         #skip-toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
-
     </style>
 </head>
 <body>
@@ -218,22 +197,35 @@
     <div id="layer-input" class="layer">
         <div class="card" id="main-card">
             <h1>Read<span>Sync</span></h1>
-            
-            <div id="bookmark-alert">
-                <p style="color:white; margin-bottom:5px; font-weight:600;">Saved Session Found</p>
-                <button id="btn-resume-bookmark">Resume Where You Left Off</button>
-            </div>
 
+            <div class="session-panel">
+                <label style="color:var(--accent-color);">Resume Previous Session</label>
+                <div style="display:flex; gap:10px; margin-top:5px;">
+                    <select id="sel-bookmarks" style="flex:1;"><option value="">No Recent Sessions</option></select>
+                    <button id="btn-load-bookmark" style="padding: 10px; font-weight:bold; cursor:pointer;">Load</button>
+                </div>
+            </div>
+            
             <div class="drop-zone" id="drop-zone">
                 Drag & Drop Document Here (PDF, DOCX, EPUB, TXT)
                 <br><span style="font-size:0.8rem; opacity:0.6;">Or click to browse</span>
                 <input type="file" id="file-upload" accept=".pdf,.docx,.epub,.txt" style="display:none;">
             </div>
 
+            <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                <label>Input Raw Text</label>
+                <div style="display:flex; align-items:center; gap:5px; margin-bottom:5px;">
+                    <input type="checkbox" id="chk-dev-mode" style="width:auto; margin:0;">
+                    <label style="margin:0; font-size:0.65rem;">Developer Mode</label>
+                </div>
+            </div>
+            <textarea id="txt-input" placeholder="Extracted text will appear here. Or paste your own content manually."></textarea>
+            <div style="text-align:right; font-size:0.7rem; color:#555; margin-bottom:10px;"><span id="cnt-char">0</span> chars</div>
+
             <div class="grid-2">
                 <div class="field">
                     <label>Synthesis Engine</label>
-                    <select id="sel-voice"><option value="EDGE_AI">Edge AI (Local LLM Placeholder)</option></select>
+                    <select id="sel-voice"><option>Loading...</option></select>
                 </div>
                 <div class="field">
                     <label>Pacing Rate (WPM Mod)</label>
@@ -243,9 +235,6 @@
                     </div>
                 </div>
             </div>
-
-            <textarea id="txt-input" placeholder="Extracted text will appear here. Or paste your own content manually."></textarea>
-            <div style="text-align:right; font-size:0.7rem; color:#555; margin-top:5px;"><span id="cnt-char">0</span> chars</div>
 
             <button id="btn-start" class="primary">Initiate Synced Stream</button>
         </div>
@@ -259,26 +248,28 @@
         <!-- Original Text Context Layer -->
         <div id="context-layer"></div>
 
-        <!-- Collapsible Structure Sidebar -->
+        <!-- Shared Collapsible Sidebar (Contents / Lexicon) -->
         <div id="sidebar">
             <div class="sidebar-header">
-                <h3>Document Structure</h3>
+                <h3 id="sidebar-title">Menu</h3>
                 <button id="btn-close-sidebar" class="close-btn">&times;</button>
             </div>
             <div class="sidebar-content" id="sidebar-content"></div>
         </div>
 
         <div class="rsvp-stage">
-            <div class="word-chunk c-left" id="r-left"></div>
-            <div class="word-chunk c-pivot" id="r-pivot"></div>
-            <div class="word-chunk c-right" id="r-right"></div>
+            <div class="word-chunk" id="r-left"></div>
+            <div class="word-chunk" id="r-pivot"></div>
+            <div class="word-chunk" id="r-right"></div>
         </div>
         
         <div class="hud">
             <!-- Navigation & Context Controls -->
             <div class="hud-top-row">
-                <button id="btn-toggle-sidebar" class="hud-btn" style="padding:6px 12px; font-size:1.2rem;" title="Contents">☰</button>
-                <div class="jump-control">
+                <button id="btn-toggle-struct" class="hud-btn" style="padding:6px 12px; font-size:1.2rem;" title="Contents">☰</button>
+                <button id="btn-toggle-lex" class="hud-btn" style="padding:6px 12px; font-size:1.2rem;" title="Lexicon Editor">📖</button>
+                
+                <div class="jump-control" style="margin-left:5px;">
                     Word <input type="number" id="inp-jump" min="1" value="1"> / <span id="hud-total">0</span>
                     <button id="btn-jump">Go</button>
                 </div>
@@ -302,7 +293,6 @@
 
             <div class="hud-controls">
                 <button id="btn-pause" class="hud-btn">Pause</button>
-                <button id="btn-bookmark" class="hud-btn">Bookmark & Exit</button>
                 <button id="btn-stop" class="hud-btn" style="border-color:var(--pivot-color); color:var(--pivot-color);">Stop</button>
             </div>
         </div>
@@ -311,8 +301,7 @@
     <script>
         /**
          * ReadSync | Enterprise Architecture
-         * Features: Precise Lexing, Wake Lock API, 100% Opacity Shift, Custom Formatted Range Inputs, 
-         * Live Speed Adjustment, and Quote Specific Visual Processing.
+         * Features: PID Controller Scroll, Dual-Lexer, Lexicon Engine, Auto-Bookmarking, Preemptive Classing
          */
 
         if(window.pdfjsLib) window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
@@ -323,21 +312,26 @@
                 dropZone: document.getElementById('drop-zone'), fileInput: document.getElementById('file-upload'),
                 voice: document.getElementById('sel-voice'), rate: document.getElementById('rng-rate'), rateDisp: document.getElementById('disp-rate'),
                 text: document.getElementById('txt-input'), count: document.getElementById('cnt-char'), start: document.getElementById('btn-start'),
-                bookmarkAlert: document.getElementById('bookmark-alert'), btnResumeBookmark: document.getElementById('btn-resume-bookmark')
+                selBookmarks: document.getElementById('sel-bookmarks'), btnLoadBookmark: document.getElementById('btn-load-bookmark'), chkDev: document.getElementById('chk-dev-mode')
             },
             out: {
+                rsvpStage: document.querySelector('.rsvp-stage'),
                 left: document.getElementById('r-left'), pivot: document.getElementById('r-pivot'), right: document.getElementById('r-right'),
-                pause: document.getElementById('btn-pause'), bookmark: document.getElementById('btn-bookmark'), stop: document.getElementById('btn-stop'),
+                pause: document.getElementById('btn-pause'), stop: document.getElementById('btn-stop'),
                 jumpInp: document.getElementById('inp-jump'), jumpBtn: document.getElementById('btn-jump'), totalWords: document.getElementById('hud-total'),
                 hudVoice: document.getElementById('sel-hud-voice'), hudRngRate: document.getElementById('hud-rng-rate'), hudDispRate: document.getElementById('hud-disp-rate'),
-                btnFullscreen: document.getElementById('btn-fullscreen'), sidebar: document.getElementById('sidebar'), btnToggleSidebar: document.getElementById('btn-toggle-sidebar'), btnCloseSidebar: document.getElementById('btn-close-sidebar'), sidebarContent: document.getElementById('sidebar-content'),
+                btnFullscreen: document.getElementById('btn-fullscreen'), 
+                sidebar: document.getElementById('sidebar'), sidebarTitle: document.getElementById('sidebar-title'), btnToggleStruct: document.getElementById('btn-toggle-struct'), btnToggleLex: document.getElementById('btn-toggle-lex'), btnCloseSidebar: document.getElementById('btn-close-sidebar'), sidebarContent: document.getElementById('sidebar-content'),
                 contextLayer: document.getElementById('context-layer'), btnToggleContext: document.getElementById('btn-toggle-context'), rngOpacity: document.getElementById('rng-opacity'), skipToast: document.getElementById('skip-toast')
             }
         };
 
         const STATE = {
-            rawText: '', voices: [], activeEngine: null, pipelineData: null,
-            currentWordGlobalIndex: 0, isPaused: false, lastContextSpan: null
+            docId: '', rawText: '', voices:[], activeEngine: null, pipelineData: null,
+            currentWordGlobalIndex: 0, isPaused: false, lastContextSpan: null,
+            targetScrollTop: 0, currentScrollTop: 0, scrollRaf: null,
+            currentSidebarMode: '',
+            lexicon: JSON.parse(localStorage.getItem('ReadSync_Lexicon')) || { "dr": "Doctor", "mr": "Mister", "mrs": "Missus", "ms": "Miss", "prof": "Professor", "st": "Street" }
         };
 
         let zenIdleTimer = null;
@@ -356,37 +350,47 @@
                 if (this.lock) { this.lock.release().then(() => { this.lock = null; }); }
             }
         };
-
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible' && STATE.activeEngine && !STATE.isPaused) WakeLockManager.acquire();
+            if (document.hidden && STATE.activeEngine) StorageManager.saveSilent();
         });
+        window.addEventListener('beforeunload', () => { if(STATE.activeEngine) StorageManager.saveSilent(); });
 
-        window.addEventListener('load', () => {
-            initVoiceLoader();
-            bindGlobalDragEvents();
-            bindUIEvents();
-            StorageManager.checkBookmark();
-        });
-
-        // --- Persistent Storage Manager ---
+        // --- Persistent Document Bookmarking ---
         const StorageManager = {
-            saveBookmark() {
-                if(!STATE.pipelineData) return;
-                const data = { 
-                    text: UI.in.text.value, wordIdx: STATE.currentWordGlobalIndex, 
-                    rate: UI.in.rate.value, voice: UI.in.voice.value, opacity: UI.out.rngOpacity.value
+            saveSilent() {
+                if(!STATE.pipelineData || !STATE.docId) return;
+                const saves = JSON.parse(localStorage.getItem('ReadSync_Saves')) || {};
+                saves[STATE.docId] = {
+                    title: STATE.docId, text: STATE.rawText, wordIdx: STATE.currentWordGlobalIndex,
+                    rate: UI.in.rate.value, voice: UI.in.voice.value, opacity: UI.out.rngOpacity.value,
+                    timestamp: Date.now()
                 };
-                localStorage.setItem('ReadSync_Save', JSON.stringify(data));
-                alert("Session Bookmarked! You can resume from this exact word later.");
+                localStorage.setItem('ReadSync_Saves', JSON.stringify(saves));
             },
-            checkBookmark() {
-                if(localStorage.getItem('ReadSync_Save')) UI.in.bookmarkAlert.style.display = 'block';
-                else UI.in.bookmarkAlert.style.display = 'none';
+            refreshDropdown() {
+                const saves = JSON.parse(localStorage.getItem('ReadSync_Saves')) || {};
+                UI.in.selBookmarks.innerHTML = '';
+                const sorted = Object.values(saves).sort((a,b) => b.timestamp - a.timestamp);
+                if(sorted.length === 0) { UI.in.selBookmarks.innerHTML = '<option value="">No Saved Sessions</option>'; return; }
+                sorted.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s.title;
+                    const date = new Date(s.timestamp).toLocaleDateString();
+                    opt.textContent = `${s.title.substring(0,30)}... (${date})`;
+                    UI.in.selBookmarks.appendChild(opt);
+                });
             },
-            loadBookmark() {
-                const data = JSON.parse(localStorage.getItem('ReadSync_Save'));
+            loadSelected() {
+                const docId = UI.in.selBookmarks.value;
+                if(!docId) return;
+                const saves = JSON.parse(localStorage.getItem('ReadSync_Saves')) || {};
+                const data = saves[docId];
                 if(!data) return;
-                UI.in.text.value = data.text; UI.in.count.innerText = data.text.length;
+                
+                STATE.docId = docId;
+                UI.in.text.value = data.text;
+                UI.in.count.innerText = data.text.length;
                 UI.in.rate.value = data.rate; UI.in.rateDisp.innerText = data.rate;
                 UI.out.hudRngRate.value = data.rate; UI.out.hudDispRate.innerText = data.rate;
                 UI.in.voice.value = data.voice;
@@ -395,29 +399,44 @@
                     UI.out.rngOpacity.value = data.opacity;
                     applyContextOpacity(parseFloat(data.opacity));
                 }
-                UI.in.bookmarkAlert.style.display = 'none';
                 startSequence(data.wordIdx); 
             }
         };
 
+        window.addEventListener('load', () => {
+            initVoiceLoader();
+            bindGlobalDragEvents();
+            bindUIEvents();
+            StorageManager.refreshDropdown();
+            startScrollLoop();
+        });
+
+        // --- PID Controller Scroll Loop (V-Sync) ---
+        function startScrollLoop() {
+            const loop = () => {
+                if (UI.out.contextLayer.classList.contains('active')) {
+                    const diff = STATE.targetScrollTop - STATE.currentScrollTop;
+                    if (Math.abs(diff) > 0.5) {
+                        STATE.currentScrollTop += diff * 0.08; // Smooth dampening
+                        UI.out.contextLayer.scrollTop = STATE.currentScrollTop;
+                    }
+                }
+                STATE.scrollRaf = requestAnimationFrame(loop);
+            };
+            STATE.scrollRaf = requestAnimationFrame(loop);
+        }
+
         // --- Keyboard Controls & Zen Mode ---
         window.addEventListener('keydown', (e) => {
             if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-
-            if(e.code === 'Space') {
-                e.preventDefault();
-                if(STATE.activeEngine && !UI.layers.reader.classList.contains('hidden')) togglePause();
-            }
-
+            if(e.code === 'Space') { e.preventDefault(); if(STATE.activeEngine && !UI.layers.reader.classList.contains('hidden')) togglePause(); }
             if((e.code === 'ArrowRight' || e.code === 'ArrowLeft') && STATE.activeEngine && !UI.layers.reader.classList.contains('hidden')) {
                 e.preventDefault();
                 const now = Date.now();
                 const dir = e.code === 'ArrowRight' ? 1 : -1;
-
                 if (now - lastSkipTime < 600 && skipDirection === dir) skipStreak++;
                 else { skipStreak = 1; skipDirection = dir; }
                 lastSkipTime = now;
-
                 const wordsToSkip = Math.min(5 * skipStreak, 100);
                 let targetIdx = STATE.currentWordGlobalIndex + (wordsToSkip * dir);
                 targetIdx = Math.max(0, Math.min(targetIdx, STATE.pipelineData.totalWords - 1));
@@ -482,23 +501,33 @@
                         }
                     }
                 } else throw new Error('Format');
-                
+                STATE.docId = file.name;
                 UI.in.text.value = text.trim();
                 UI.in.count.innerText = UI.in.text.value.length;
-            } catch (error) { alert("Extraction failed. Unsupported or protected format."); }
+            } catch (error) { alert("Extraction failed. Unsupported format."); }
             UI.in.dropZone.innerHTML = "Drag & Drop Document Here (PDF, DOCX, EPUB, TXT)<br><span style='font-size:0.8rem; opacity:0.6;'>Or click to browse</span>";
         }
 
-        // --- Voice Loader ---
+        // --- Developer Mode Voice Loader ---
         function initVoiceLoader() {
             const loadNative = () => {
                 let voices = window.speechSynthesis.getVoices();
                 if(voices.length === 0) return; 
-                STATE.voices = voices.sort((a,b) => (b.name.includes('Google')||b.name.includes('Natural')) - (a.name.includes('Google')||a.name.includes('Natural')));
+                
+                const isDev = UI.in.chkDev.checked;
+                const whitelist =['Samantha', 'Anna', 'Daniel', 'Karen', 'Melina', 'Moira', 'Nora', 'Tessa'];
+                
+                STATE.voices = voices.filter(v => {
+                    if (isDev) return true;
+                    return whitelist.some(w => v.name.includes(w));
+                }).sort((a,b) => (b.name.includes('Google')||b.name.includes('Natural')) - (a.name.includes('Google')||a.name.includes('Natural')));
+                
+                if(STATE.voices.length === 0 && !isDev) STATE.voices = voices; // Failsafe
+
                 const buildOptions = () => {
-                    let html = '<optgroup label="Edge Pipeline"><option value="EDGE_AI">Edge AI (Local LLM Placeholder)</option></optgroup>';
-                    html += '<optgroup label="Native System Voices">';
-                    STATE.voices.forEach((v, i) => { html += `<option value="${i}" ${i===0?'selected':''}>${(v.name.includes('Google') || v.name.includes('Natural')) ? '★ ' : ''}${v.name}</option>`; });
+                    let html = isDev ? '<optgroup label="Edge Pipeline"><option value="EDGE_AI">Edge AI (Local LLM Placeholder)</option></optgroup>' : '';
+                    html += '<optgroup label="System Voices">';
+                    STATE.voices.forEach((v, i) => { html += `<option value="${i}" ${i===0?'selected':''}>${v.name}</option>`; });
                     html += '</optgroup>';
                     return html;
                 };
@@ -507,6 +536,7 @@
             };
             loadNative();
             if(window.speechSynthesis.onvoiceschanged !== undefined) window.speechSynthesis.onvoiceschanged = loadNative;
+            UI.in.chkDev.addEventListener('change', loadNative);
         }
 
         function applyContextOpacity(val) {
@@ -520,38 +550,97 @@
             } else document.body.classList.remove('context-centered');
         }
 
+        // --- Sidebar Management ---
+        function openSidebar(mode) {
+            if (STATE.currentSidebarMode === mode && UI.out.sidebar.classList.contains('open')) {
+                UI.out.sidebar.classList.remove('open');
+                return;
+            }
+            STATE.currentSidebarMode = mode;
+            UI.out.sidebar.classList.add('open');
+            UI.out.sidebarContent.innerHTML = '';
+
+            if (mode === 'structure') {
+                UI.out.sidebarTitle.innerText = "Document Structure";
+                STATE.pipelineData.structure.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'struct-item';
+                    const textSpan = document.createElement('span');
+                    textSpan.className = 'marquee-text';
+                    textSpan.innerText = item.title;
+                    div.appendChild(textSpan);
+                    
+                    div.onmouseenter = () => {
+                        const vW = div.clientWidth - 40; 
+                        if (textSpan.scrollWidth > vW) {
+                            textSpan.style.transition = `transform ${(textSpan.scrollWidth - vW) * 0.015}s linear 0.2s`; 
+                            textSpan.style.transform = `translateX(-${textSpan.scrollWidth - vW}px)`;
+                        }
+                    };
+                    div.onmouseleave = () => { textSpan.style.transition = `transform 0.3s ease`; textSpan.style.transform = `translateX(0)`; };
+                    div.onclick = () => { UI.out.jumpInp.value = item.wordIdx + 1; handleJumpInput(); UI.out.sidebar.classList.remove('open'); };
+                    UI.out.sidebarContent.appendChild(div);
+                });
+            } else if (mode === 'lexicon') {
+                UI.out.sidebarTitle.innerText = "Lexicon Editor";
+                
+                const buildRow = (orig, rep) => {
+                    const row = document.createElement('div'); row.className = 'lexicon-row';
+                    const oInp = document.createElement('input'); oInp.value = orig; oInp.readOnly = true; oInp.style.background = 'transparent'; oInp.style.border='none';
+                    const rInp = document.createElement('input'); rInp.value = rep; rInp.readOnly = true; rInp.style.background = 'transparent'; rInp.style.border='none';
+                    const del = document.createElement('button'); del.className = 'lex-del'; del.innerText = '✕';
+                    del.onclick = () => { delete STATE.lexicon[orig.toLowerCase()]; saveLexicon(); openSidebar('lexicon'); };
+                    row.append(oInp, rInp, del);
+                    return row;
+                };
+
+                const addForm = document.createElement('div'); addForm.className = 'lexicon-row';
+                const newO = document.createElement('input'); newO.placeholder = "e.g. Dr";
+                const newR = document.createElement('input'); newR.placeholder = "e.g. Doctor";
+                const btnAdd = document.createElement('button'); btnAdd.className = 'lex-del'; btnAdd.innerText = '+'; btnAdd.style.background = 'var(--accent-color)'; btnAdd.style.color='#000';
+                btnAdd.onclick = () => {
+                    if(newO.value.trim() && newR.value.trim()){
+                        STATE.lexicon[newO.value.trim().toLowerCase()] = newR.value.trim();
+                        saveLexicon(); openSidebar('lexicon');
+                    }
+                };
+                addForm.append(newO, newR, btnAdd);
+                UI.out.sidebarContent.appendChild(addForm);
+                
+                Object.entries(STATE.lexicon).forEach(([o, r]) => UI.out.sidebarContent.appendChild(buildRow(o, r)));
+            }
+        }
+
+        function saveLexicon() { localStorage.setItem('ReadSync_Lexicon', JSON.stringify(STATE.lexicon)); }
+
         function bindUIEvents() {
-            // Live WPM Slider Sync Handler
-            const updateUI = (val) => {
+            const syncRate = (val) => {
                 UI.in.rate.value = val; UI.in.rateDisp.innerText = val.toFixed(1);
                 UI.out.hudRngRate.value = val; UI.out.hudDispRate.innerText = val.toFixed(1);
             };
-            UI.in.rate.addEventListener('input', e => updateUI(parseFloat(e.target.value)));
-            UI.out.hudRngRate.addEventListener('input', e => updateUI(parseFloat(e.target.value)));
-            
-            // On mouse up/release, seamlessly construct new stream
+            UI.in.rate.addEventListener('input', e => syncRate(parseFloat(e.target.value)));
+            UI.out.hudRngRate.addEventListener('input', e => syncRate(parseFloat(e.target.value)));
             UI.out.hudRngRate.addEventListener('change', e => {
-                const val = parseFloat(e.target.value);
                 if (STATE.activeEngine) {
-                    STATE.activeEngine.rate = val;
+                    STATE.activeEngine.rate = parseFloat(e.target.value);
                     STATE.activeEngine.jumpTo(STATE.currentWordGlobalIndex, !STATE.isPaused);
                 }
             });
 
-            UI.in.text.addEventListener('input', e => UI.in.count.innerText = e.target.value.length);
+            UI.in.text.addEventListener('input', e => { UI.in.count.innerText = e.target.value.length; STATE.docId = ''; });
             UI.in.start.addEventListener('click', () => startSequence(0));
-            UI.in.btnResumeBookmark.addEventListener('click', () => StorageManager.loadBookmark());
+            UI.in.btnLoadBookmark.addEventListener('click', () => StorageManager.loadSelected());
 
             UI.out.pause.addEventListener('click', togglePause);
             UI.out.stop.addEventListener('click', stopSequence);
-            UI.out.bookmark.addEventListener('click', () => { StorageManager.saveBookmark(); stopSequence(); });
 
             UI.out.btnFullscreen.addEventListener('click', () => {
                 if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(err => console.log(err));
                 else document.exitFullscreen();
             });
 
-            UI.out.btnToggleSidebar.addEventListener('click', () => UI.out.sidebar.classList.toggle('open'));
+            UI.out.btnToggleStruct.addEventListener('click', () => openSidebar('structure'));
+            UI.out.btnToggleLex.addEventListener('click', () => openSidebar('lexicon'));
             UI.out.btnCloseSidebar.addEventListener('click', () => UI.out.sidebar.classList.remove('open'));
 
             UI.out.jumpBtn.addEventListener('click', handleJumpInput);
@@ -560,13 +649,9 @@
             UI.out.btnToggleContext.addEventListener('click', () => {
                 UI.out.contextLayer.classList.toggle('active');
                 UI.out.btnToggleContext.classList.toggle('active');
-                
                 if(UI.out.contextLayer.classList.contains('active') && STATE.lastContextSpan) {
-                    const container = UI.out.contextLayer;
-                    const spanTop = STATE.lastContextSpan.offsetTop;
-                    const containerHalf = container.clientHeight / 2;
-                    const spanHalf = STATE.lastContextSpan.clientHeight / 2;
-                    container.scrollTo({ top: spanTop - containerHalf + spanHalf, behavior: 'auto' });
+                    STATE.targetScrollTop = STATE.lastContextSpan.offsetTop - (UI.out.contextLayer.clientHeight / 2) + (STATE.lastContextSpan.clientHeight / 2);
+                    STATE.currentScrollTop = STATE.targetScrollTop; // Snap on open
                 }
             });
             UI.out.rngOpacity.addEventListener('input', (e) => applyContextOpacity(parseFloat(e.target.value)));
@@ -588,22 +673,33 @@
             STATE.activeEngine.jumpTo(target, false);
         }
 
-        // --- Text Pipeline (Intelligent Date & Quote Parser) ---
+        // --- Text Pipeline (Lexicon + Quote > 3 Sentence Fix) ---
         class TextPipeline {
             static parse(rawText) {
                 const clauses = [];
-                const structure = [];
+                const structure =[];
                 let globalIdx = 0;
                 let inQuote = false;
+                let sentenceCountInQuote = 0;
+                let quoteStartIdx = -1;
                 
-                // Matches exact Month+Day bindings (with trailing commas preserved) or standard separated words
                 const wordRegex = /\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2}(?:st|nd|rd|th)?[.,;:]*|\b\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?[.,;:]*|[^\s\-—–]+/gi;
                 
                 let match;
-                let currentClauseWords = [];
+                let currentClauseWords =[];
                 let currentClauseStart = 0;
                 let lastWordEnd = 0;
                 let nextSegmentThreshold = 0;
+
+                const getDisplay = (raw) => {
+                    const l = raw.toLowerCase();
+                    if(STATE.lexicon[l]) {
+                        let rep = STATE.lexicon[l];
+                        if (raw[0] === raw[0].toUpperCase()) rep = rep.charAt(0).toUpperCase() + rep.slice(1);
+                        return rep;
+                    }
+                    return raw;
+                };
 
                 while ((match = wordRegex.exec(rawText)) !== null) {
                     const rawWord = match[0];
@@ -620,7 +716,8 @@
                         wordObj.isQuote = true;
                         wordObj.clean = rawWord.replace(/[.,;:!?)(\]\[}]/g, ''); 
                     } else if (sq && !inQuote) {
-                        inQuote = true; wordObj.isQuote = true;
+                        inQuote = true; quoteStartIdx = wordObj.globalIdx; sentenceCountInQuote = 0;
+                        wordObj.isQuote = true;
                         wordObj.clean = rawWord.replace(/[.,;:"!?)(\]\[}“”]/g, ''); 
                     } else if (eq && inQuote) {
                         inQuote = false; wordObj.isQuote = true;
@@ -632,12 +729,20 @@
                         wordObj.clean = rawWord.replace(/[.,;:"!?)(\]\[}“”]/g, '');
                     }
 
+                    // Apply Lexicon to the cleaned visual/audio representation
+                    wordObj.displayVisual = getDisplay(wordObj.clean);
+
                     const textSinceLast = rawText.substring(lastWordEnd, charStart);
                     const prevWordRaw = currentClauseWords.length > 0 ? currentClauseWords[currentClauseWords.length - 1].raw : '';
                     
+                    if (inQuote && /[.?!]+["”]?$/.test(rawWord)) sentenceCountInQuote++;
+                    if (sentenceCountInQuote > 3) {
+                        inQuote = false;
+                        currentClauseWords.forEach(w => { if(w.globalIdx >= quoteStartIdx) w.isQuote = false; });
+                    }
+                    
                     if (/[\n\r]{2,}/.test(textSinceLast)) inQuote = false;
 
-                    // Clause boundaries (ignores internal date commas naturally)
                     if (currentClauseWords.length > 0 && (/[.!?;:]$/.test(prevWordRaw) || (/,$/.test(prevWordRaw) && !/^[A-Z]/.test(wordObj.clean)) || /[\n\r]/.test(textSinceLast))) {
                         const clauseText = rawText.substring(currentClauseStart, charStart);
                         const cleanClause = clauseText.trim();
@@ -662,7 +767,7 @@
                         });
 
                         clauses.push({ text: clauseText, words: currentClauseWords });
-                        currentClauseWords = [];
+                        currentClauseWords =[];
                         currentClauseStart = charStart; 
                     }
 
@@ -683,10 +788,6 @@
             }
         }
 
-        function escapeHTML(str) {
-            return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag]));
-        }
-
         function buildContextLayer(rawText, pipelineData) {
             let html = '';
             let lastIdx = 0;
@@ -701,35 +802,6 @@
             UI.out.contextLayer.innerHTML = html;
         }
 
-        function buildSidebar() {
-            UI.out.sidebarContent.innerHTML = '';
-            STATE.pipelineData.structure.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'struct-item';
-                
-                const textSpan = document.createElement('span');
-                textSpan.className = 'marquee-text';
-                textSpan.innerText = item.title;
-                div.appendChild(textSpan);
-                
-                div.onmouseenter = () => {
-                    const visibleWidth = div.clientWidth - 40; 
-                    if (textSpan.scrollWidth > visibleWidth) {
-                        const distance = textSpan.scrollWidth - visibleWidth;
-                        textSpan.style.transition = `transform ${distance * 0.015}s linear 0.2s`; 
-                        textSpan.style.transform = `translateX(-${distance}px)`;
-                    }
-                };
-                div.onmouseleave = () => {
-                    textSpan.style.transition = `transform 0.3s ease`;
-                    textSpan.style.transform = `translateX(0)`;
-                };
-
-                div.onclick = () => { UI.out.jumpInp.value = item.wordIdx + 1; handleJumpInput(); UI.out.sidebar.classList.remove('open'); };
-                UI.out.sidebarContent.appendChild(div);
-            });
-        }
-
         function renderWord(wordObj) {
             if (!wordObj) return;
             STATE.currentWordGlobalIndex = wordObj.globalIdx;
@@ -741,39 +813,34 @@
                 if(STATE.lastContextSpan) STATE.lastContextSpan.classList.remove('active-word');
                 contextSpan.classList.add('active-word');
                 STATE.lastContextSpan = contextSpan;
-
-                if (UI.out.contextLayer.classList.contains('active')) {
-                    const container = UI.out.contextLayer;
-                    const spanTop = contextSpan.offsetTop;
-                    const containerHalf = container.clientHeight / 2;
-                    const spanHalf = contextSpan.clientHeight / 2;
-                    container.scrollTo({ top: spanTop - containerHalf + spanHalf, behavior: 'auto' });
-                }
+                
+                // PID target calculation
+                const containerHalf = UI.out.contextLayer.clientHeight / 2;
+                STATE.targetScrollTop = contextSpan.offsetTop - containerHalf + (contextSpan.clientHeight / 2);
             }
 
-            const displayToken = wordObj.clean;
+            const displayToken = wordObj.displayVisual || wordObj.clean;
             if (!displayToken) return; 
 
-            // Clear quote colors
-            UI.out.left.classList.remove('is-quote');
-            UI.out.right.classList.remove('is-quote');
-            UI.out.pivot.classList.remove('is-quote');
-            
+            // Clear visual stage to prevent red flash / quote lingering
+            UI.out.left.className = 'word-chunk c-left';
+            UI.out.right.className = 'word-chunk c-right';
+            UI.out.pivot.className = 'word-chunk c-pivot';
+            UI.out.left.innerText = ''; UI.out.right.innerText = ''; UI.out.pivot.innerText = '';
+
             if (wordObj.isQuote) {
                 UI.out.left.classList.add('is-quote');
                 UI.out.right.classList.add('is-quote');
-                UI.out.pivot.classList.add('is-quote');
             }
 
-            // Number & Date Geometric Centering Logic
+            // Number Handling: Sets class BEFORE innerText renders to avoid flash
             if (/\d/.test(displayToken)) {
-                UI.out.left.innerText = ''; UI.out.right.innerText = '';
-                UI.out.pivot.innerText = displayToken; 
                 UI.out.pivot.classList.add('is-num'); 
+                if(wordObj.isQuote) UI.out.pivot.classList.add('is-quote');
+                UI.out.pivot.innerText = displayToken;
                 return;
             }
 
-            UI.out.pivot.classList.remove('is-num');
             const len = displayToken.length;
             let idx = Math.max(0, Math.ceil(len / 2) - 1); 
             const center = Math.floor(len / 2);
@@ -812,6 +879,7 @@
                 window.speechSynthesis.cancel();
                 if(this.timer) clearInterval(this.timer);
                 this.engineSupportsBoundaries = false; 
+                StorageManager.saveSilent(); // Auto-save on jump
 
                 this.currentClauseIdx = Math.max(0, this.clauses.findIndex(c => c.words.some(w => w.globalIdx >= globalWordIdx)));
                 this.resumeGlobalIdx = globalWordIdx;
@@ -843,21 +911,22 @@
 
                 const clause = this.clauses[this.currentClauseIdx];
                 let currentVisualIdx = 0;
-                let charOffset = 0; 
 
                 if(startAtGlobalIdx !== null) {
                     currentVisualIdx = clause.words.findIndex(w => w.globalIdx >= startAtGlobalIdx);
                     if(currentVisualIdx === -1) currentVisualIdx = 0;
                 }
 
-                let textToSpeak = clause.text;
-                if (currentVisualIdx > 0) {
-                    const startWord = clause.words[currentVisualIdx];
-                    charOffset = startWord.clauseCharStart;
-                    textToSpeak = clause.text.substring(charOffset);
-                }
+                // Lexicon + Hyphen Audio Mapping Engine
+                let audioText = "";
+                clause.words.forEach((w, i) => {
+                    if (i < currentVisualIdx) return; // Skip words before slice
+                    let spokenWord = w.displayVisual || w.clean;
+                    spokenWord = spokenWord.replace(/[-—–]/g, ' '); 
+                    w.audioCharStart = audioText.length;
+                    audioText += spokenWord + " ";
+                });
 
-                const audioText = textToSpeak.replace(/[-—–]/g, ' ');
                 const utt = new SpeechSynthesisUtterance(audioText);
                 this.expectedUtt = utt; 
                 
@@ -890,10 +959,10 @@
                             if(this.timer) clearInterval(this.timer);
                         }
                         
-                        const adjustedCharIndex = e.charIndex + charOffset;
                         let exactIdx = currentVisualIdx;
                         for (let i = currentVisualIdx; i < clause.words.length; i++) {
-                            if (adjustedCharIndex >= (clause.words[i].clauseCharStart - 2)) exactIdx = i;
+                            // Match perfectly decoupled audio indices against events
+                            if (e.charIndex >= (clause.words[i].audioCharStart - 1)) exactIdx = i;
                             else break;
                         }
                         
@@ -923,7 +992,7 @@
                 window.speechSynthesis.speak(utt);
             }
 
-            pause() { window.speechSynthesis.pause(); WakeLockManager.release(); }
+            pause() { window.speechSynthesis.pause(); StorageManager.saveSilent(); WakeLockManager.release(); }
             resume() { 
                 window.speechSynthesis.resume(); WakeLockManager.acquire();
                 if(!window.speechSynthesis.speaking) {
@@ -953,12 +1022,13 @@
         function startSequence(startWordIdx = 0) {
             STATE.rawText = UI.in.text.value; 
             if (!STATE.rawText.trim()) return alert("No text input found.");
+            
+            if (!STATE.docId) STATE.docId = STATE.rawText.substring(0, 20) + "..."; // Generate ID if pasted
 
             STATE.pipelineData = TextPipeline.parse(STATE.rawText);
             if(STATE.pipelineData.totalWords === 0) return alert("No words extracted.");
 
             UI.out.totalWords.innerText = STATE.pipelineData.totalWords;
-            buildSidebar(); 
             buildContextLayer(STATE.rawText, STATE.pipelineData);
 
             UI.layers.input.classList.add('hidden');
@@ -978,6 +1048,7 @@
         }
 
         function stopSequence() {
+            StorageManager.saveSilent();
             if (STATE.activeEngine) STATE.activeEngine.stop();
             STATE.activeEngine = null; STATE.isPaused = false;
             if (document.fullscreenElement) document.exitFullscreen();
@@ -990,7 +1061,7 @@
             document.body.classList.remove('context-centered');
             UI.out.left.innerText = ''; UI.out.pivot.innerText = ''; UI.out.right.innerText = '';
             
-            StorageManager.checkBookmark(); 
+            StorageManager.refreshDropdown(); // Refresh available sessions
         }
     </script>
 </body>
